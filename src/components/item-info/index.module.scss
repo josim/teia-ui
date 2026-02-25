@@ -203,6 +203,14 @@ span[data-tooltip][data-position='top']:after {
   padding-right: 0.5em;
 }
 
+.collect_share {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1em;
+  width: 100%;
+}
+
 .main_swap {
   display: flex;
   gap: 1em;

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import classNames from 'classnames'
 import get from 'lodash/get'
 import { PATH } from '@constants'
-import { Button, Secondary } from '@atoms/button'
+import { Button, Secondary, ShareButton } from '@atoms/button'
 import { useUserStore } from '@context/userStore'
 
 import { walletPreview } from '@utils/string'
@@ -123,7 +123,21 @@ const ItemInfo = ({ nft }) => {
               </div>
             )}
           </div>
-          <CheapestButton listing={cheapestListing} />
+          <div className={styles.collect_share}>
+            <CheapestButton listing={cheapestListing} />
+            <ShareButton
+              url={`${window.location.origin}/objkt/${nft.token_id}`}
+              title={nft.name}
+              displayUri={nft.display_uri}
+              artistName={
+                nft.artist_profile?.name || walletPreview(nft.artist_address)
+              }
+              tokenId={nft.token_id}
+              artistAddress={nft.artist_address}
+              mimeType={nft.mime_type}
+              artifactUri={nft.artifact_uri}
+            />
+          </div>
         </div>
       )}
     </>

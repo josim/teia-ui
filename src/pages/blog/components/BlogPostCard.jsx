@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PATH, MARKETPLACE_CONTRACT_TEIA } from '@constants'
+import { ShareButton } from '@atoms/button'
 import { HashToURL } from '@utils'
+import { walletPreview } from '@utils/string'
 import { useUserStore } from '@context/userStore'
 import { useModalStore } from '@context/modalStore'
 import styles from './BlogPostCard.module.scss'
@@ -43,8 +45,10 @@ export function BlogPostCard({ nft, showBurn = false }) {
     editions,
     listings,
     holdings,
+    mime_type,
+    artifact_uri,
   } = nft
-  const authorName = artist_profile?.name || artist_address?.slice(0, 8) + '...'
+  const authorName = artist_profile?.name || walletPreview(artist_address)
   const coverUrl = display_uri ? HashToURL(display_uri) : null
 
   // Get editions hold
@@ -143,6 +147,16 @@ export function BlogPostCard({ nft, showBurn = false }) {
                 {authorName}
               </Link>
               <span className={styles.date}>{formatDate(minted_at)}</span>
+              <ShareButton
+                url={`${window.location.origin}/objkt/${token_id}`}
+                title={name}
+                displayUri={display_uri}
+                artistName={authorName}
+                tokenId={token_id}
+                artistAddress={artist_address}
+                mimeType={mime_type}
+                artifactUri={artifact_uri}
+              />
             </div>
           </div>
         </div>
