@@ -135,6 +135,12 @@ export const MainMenu = () => {
 
           <MenuItem
             className={styles.menu_label}
+            label="Moderators"
+            route="moderators"
+          />
+
+          <MenuItem
+            className={styles.menu_label}
             label="Donate"
             route="donate"
           />
