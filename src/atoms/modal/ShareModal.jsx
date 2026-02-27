@@ -3,6 +3,7 @@ import useClipboard from 'react-use-clipboard'
 import { AnimatePresence, motion } from 'framer-motion'
 import { fadeIn } from '@utils/motion'
 import { HashToURL } from '@utils'
+import { Button } from '@atoms/button'
 import styles from './ShareModal.module.scss'
 
 export default function ShareModal({
@@ -64,24 +65,19 @@ export default function ShareModal({
 
             <div className={styles.actions}>
               {onShareOnBlog && (
-                <button
-                  className={styles.share_btn}
+                <Button
                   onClick={() => {
                     onShareOnBlog()
                     onClose()
                   }}
+                  shadow_box
                 >
                   Share on Teia Blogs
-                </button>
+                </Button>
               )}
-              <button
-                className={`${styles.share_btn} ${
-                  isCopied ? styles.copied : ''
-                }`}
-                onClick={setCopied}
-              >
+              <Button onClick={setCopied} shadow_box>
                 {isCopied ? 'Copied!' : 'Copy link'}
-              </button>
+              </Button>
             </div>
           </div>
         </motion.div>
