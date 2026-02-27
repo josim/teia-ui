@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useUserStore } from '@context/userStore'
 import { useModalStore } from '@context/modalStore'
 import { useLocalSettings } from '@context/localSettingsStore'
@@ -13,7 +13,7 @@ import {
   MAX_EDITIONS,
   TEIA_MULTISIG_BLOG_TAG,
 } from '@constants'
-import { useMultisigAddresses } from '@data/swr'
+import { useMultisigAddresses, useModeratorAddresses } from '@data/swr'
 import { prepareFile } from '@data/ipfs'
 import {
   convertFileToFileForm,
@@ -93,7 +93,10 @@ export default function NewPost() {
 
   const minterAddress = proxyAddress || address
   const multisigAddresses = useMultisigAddresses()
-  const isMultisig = multisigAddresses.includes(minterAddress)
+  const moderatorAddresses = useModeratorAddresses()
+  const canPostBulletin =
+    multisigAddresses.includes(minterAddress) ||
+    moderatorAddresses.includes(minterAddress)
 
   // Parse embedded tokens from markdown content
   const embeddedTokens = useMemo(() => parseEmbeddedTokens(content), [content])
@@ -311,10 +314,10 @@ export default function NewPost() {
 
   return (
     <form onSubmit={handleSubmit} className={styles.newpost_form}>
-      {isMultisig && (
+      {canPostBulletin && (
         <div className={styles.field}>
           <Checkbox
-            label="Bulletin Teia Blog Post (Multisig Members Only)"
+            label="Bulletin Teia Blog Post"
             checked={isOfficialPost}
             onCheck={setIsOfficialPost}
           />
