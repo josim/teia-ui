@@ -21,6 +21,11 @@ import {
   DaoProposals,
   SubmitDaoProposals,
 } from '@pages/dao/tabs'
+import { Moderators } from '@pages/moderators'
+import {
+  ModeratorProposals,
+  SubmitModeratorProposal,
+} from '@pages/moderators/tabs'
 import { TeiaPolls, PollDisplay } from '@pages/polls'
 import { Polls, CreatePolls, Discourse } from '@pages/polls/tabs'
 import { FAQ } from '@pages/faq'
@@ -195,6 +200,10 @@ const router = createBrowserRouter(
         <Route path="proposals" element={<DaoProposals />} />
         <Route path="submit" element={<SubmitDaoProposals />} />
         <Route path="*" element={<DaoParameters />} />
+      </Route>
+      <Route path="moderators/*" element={<Moderators />}>
+        <Route index element={<ModeratorProposals />} />
+        <Route path="submit" element={<SubmitModeratorProposal />} />
       </Route>
       <Route path="proposal/:id" element={<ProposalDisplay />} />
       <Route path="polls/*" element={<TeiaPolls />}>

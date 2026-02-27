@@ -6,6 +6,7 @@ import {
   DAO_TOKEN_DECIMALS,
   COPYRIGHT_CONTRACT,
   DAO_TREASURY_CONTRACT,
+  MODERATOR_CONTRACT,
   HEN_CONTRACT_FA2,
   TEIA_MULTISIG_BLOG_TAG,
 } from '@constants'
@@ -650,16 +651,45 @@ export function useMultisigAddresses() {
   return data || []
 }
 
+export function useModeratorAddresses() {
+  const { data } = useSWR(
+    `/v1/contracts/${MODERATOR_CONTRACT}/storage?path=moderators`,
+    getTzktData,
+    { revalidateIfStale: false, revalidateOnFocus: false }
+  )
+  return data || []
+}
+
+export function useModeratorProposals(moderatorStorage) {
+  const parameters = {
+    limit: 10000,
+    active: true,
+    select: 'key,value',
+  }
+  const { data, mutate } = useSWR(
+    moderatorStorage?.proposals
+      ? [`/v1/bigmaps/${moderatorStorage.proposals}/keys`, parameters]
+      : null,
+    getTzktData
+  )
+
+  return [reorderBigmapData(data), mutate]
+}
+
 export function useOfficialBlogPosts(limit = 100) {
   const multisigAddresses = useMultisigAddresses()
+  const moderatorAddresses = useModeratorAddresses()
+  const allAddresses = [
+    ...new Set([...multisigAddresses, ...moderatorAddresses]),
+  ]
   return useSWR(
-    multisigAddresses.length > 0 ? ['blog-official', multisigAddresses] : null,
+    allAddresses.length > 0 ? ['blog-official', allAddresses] : null,
     () =>
       request(
         import.meta.env.VITE_TEIA_GRAPHQL_API,
         OFFICIAL_BLOG_POSTS_QUERY,
         {
-          addresses: multisigAddresses,
+          addresses: allAddresses,
           tag: TEIA_MULTISIG_BLOG_TAG,
           limit,
         }
