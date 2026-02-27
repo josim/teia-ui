@@ -1,0 +1,63 @@
+@import '@styles/mixins.scss';
+
+.section {
+  margin: 2em 0;
+
+  a {
+    text-decoration: underline;
+  }
+
+  > p {
+    margin: 1em 0;
+  }
+}
+
+.section_title {
+  margin-bottom: 0.5em;
+}
+
+.proposal {
+  margin: 2em 0;
+
+  p {
+    margin: 0.5em 0;
+  }
+}
+
+.proposal_id {
+  margin-right: 1em;
+  padding: 0 1em;
+  text-align: center;
+  background-color: var(--gray-15);
+}
+
+.proposal_information {
+  @include respond-to('desktop') {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 2em;
+
+    > :first-child {
+      flex: 1 1 0;
+    }
+  }
+}
+
+.proposal_buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+  margin: 0.5em 0;
+
+  @include respond-to('desktop') {
+    margin-bottom: 1.5em;
+  }
+}
+
+.loading_container {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
