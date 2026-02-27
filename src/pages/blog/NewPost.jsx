@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useUserStore } from '@context/userStore'
 import { useModalStore } from '@context/modalStore'
 import { useLocalSettings } from '@context/localSettingsStore'
@@ -66,6 +66,7 @@ const DRAFT_KEY = 'teia-blog-draft'
 
 export default function NewPost() {
   const navigate = useNavigate()
+  const location = useLocation()
   const address = useUserStore((st) => st.address)
   const proxyAddress = useUserStore((st) => st.proxyAddress)
   const mint = useUserStore((st) => st.mint)
@@ -82,7 +83,11 @@ export default function NewPost() {
   })
 
   const [title, setTitle] = useState(initialDraft.title || '')
-  const [content, setContent] = useState(initialDraft.content || '')
+  const [content, setContent] = useState(() => {
+    const embed = location.state?.embedContent
+    const draft = initialDraft.content || ''
+    return embed ? embed + '\n' + draft : draft
+  })
   const [tags, setTags] = useState(initialDraft.tags || '')
   const [editions, setEditions] = useState(1)
   const [royalties, setRoyalties] = useState(MIN_ROYALTIES)
