@@ -1,0 +1,52 @@
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.headline {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.tab_content {
+  min-height: 60vh;
+  padding: 16px 0;
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--secondary-color);
+}
+
+.field {
+  margin-bottom: 16px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.fee {
+  font-size: 13px;
+  color: var(--secondary-color);
+  margin-top: 8px;
+}
+
+.load_more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}

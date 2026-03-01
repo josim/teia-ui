@@ -1,0 +1,77 @@
+@import '@styles/variables.scss';
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.address_input {
+  flex: 1;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--text-color);
+  font-family: var(--text-font);
+  font-size: $font-body;
+  letter-spacing: $letter-spacing;
+  min-width: 0;
+  transition: border-color 0.15s ease;
+
+  &::placeholder {
+    color: var(--secondary-color);
+    opacity: 0.5;
+  }
+
+  &:focus {
+    outline: none;
+    border-bottom-color: var(--border-color);
+  }
+}
+
+.alias {
+  flex-shrink: 0;
+  font-size: $font-xsmall;
+  color: var(--yes-vote-color);
+  white-space: nowrap;
+}
+
+.error {
+  flex-shrink: 0;
+  font-size: $font-xsmall;
+  color: var(--no-vote-color);
+  white-space: nowrap;
+}
+
+.remove_btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  color: var(--secondary-color);
+  cursor: pointer;
+  font-size: 16px;
+  font-family: var(--text-font);
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--no-vote-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--text-color);
+    outline-offset: 2px;
+  }
+}

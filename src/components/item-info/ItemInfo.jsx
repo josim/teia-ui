@@ -16,6 +16,7 @@ import SigningSummary from '@components/collab/show/SigningSummary'
 import CheapestButton from './CheapestButton'
 import CollabIssuerInfo from '@components/collab/show/CollabIssuerInfo'
 import Editions from './Editions'
+import SendMessageButton from '@components/messaging/SendMessageButton'
 /**
  * @param {Object} itemInfoOptions
  * @param {import("@types").NFT} itemInfoOptions.nft
@@ -89,6 +90,7 @@ const ItemInfo = ({ nft }) => {
               )}
             </div>
           </div>
+          <SendMessageButton address={nft.artist_address} />
           <Editions prefix="Editions:" nft={nft} />
         </div>
       </div>

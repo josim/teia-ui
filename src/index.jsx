@@ -66,6 +66,10 @@ import Collabs from '@pages/profile/collabs'
 import Curation from '@pages/profile/curation'
 import BlogPosts from '@pages/profile/blog-posts'
 
+import Messages from '@pages/messages'
+import Inbox from '@pages/messages/Inbox'
+import Compose from '@pages/messages/Compose'
+import ThreadView from '@pages/messages/ThreadView'
 import Sync from '@pages/sync'
 import { Terms } from '@pages/terms'
 import ReactDOM from 'react-dom/client'
@@ -204,6 +208,12 @@ const router = createBrowserRouter(
         <Route path="*" element={<Polls />} />
       </Route>
       <Route path="poll/:id" element={<PollDisplay />} />
+      <Route path="messages/*" element={<Messages />}>
+        <Route index element={<Inbox />} />
+        <Route path="compose" element={<Compose />} />
+        <Route path="compose/:prefillAddress" element={<Compose />} />
+        <Route path="thread/:threadId" element={<ThreadView />} />
+      </Route>
       <Route path="tags/:tag" element={<Tags />} />
       <Route path="tz/:address/*" element={<Display />}>
         {display_routes}

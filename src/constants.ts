@@ -14,6 +14,7 @@ export const PATH = {
   PROPOSAL: '/proposal',
   POLLS: '/polls',
   POLL: '/poll',
+  MESSAGES: '/messages',
   SYNC: '/sync',
   MINT: '/mint',
   OBJKT: '/objkt',
@@ -165,6 +166,8 @@ export const QUAKE_FUNDING_CONTRACT = 'KT1X1jyohFrZyDYWvCPXw9KvWxk2VDwxyg2g'
 export const COPYRIGHT_CONTRACT = 'KT1XAiMoaddkmLUhMYMrc3ghm9uBdLgVbiFK'
 export const MOROCCO_QUAKE_FUNDING_CONTRACT =
   'KT1RwXEP8Sj1UQDHPG4oEjRohBdzG2R7FCpA'
+
+export const TMNT_MESSAGING_CONTRACT = 'KT1Lg2jHRQFVWsqxGRRv1MRMtHUXRPSz2KFj'
 
 export const POLLS_CONTRACT = 'KT1SUExZfkmxf2fafrVgYjZGEKDete2siWoU'
 export const DAO_GOVERNANCE_CONTRACT = 'KT1GHX73W5BcjbYRSZSrUJcnZE3Uw92VYF66'

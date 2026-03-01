@@ -146,6 +146,12 @@ export const MainMenu = () => {
           />
 
           <MenuItem className={styles.menu_label} label="Polls" route="polls" />
+          <MenuItem
+            className={styles.menu_label}
+            label="Messages"
+            route="messages"
+            need_sync
+          />
           <div className={styles.state_buttons}>
             {/* <Toggle box onToggle={toggleTheme} toggled={theme === 'dark'} /> */}
             <Toggle box label="ZEN" onToggle={setZen} toggled={zen} />

@@ -6,6 +6,7 @@ import { useDaoTokenBalance } from '@data/swr'
 import styles from '@style'
 import { useDisplayStore } from '.'
 import ParticipantList from '@components/collab/manage/ParticipantList'
+import SendMessageButton from '@components/messaging/SendMessageButton'
 import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 
@@ -354,6 +355,7 @@ export default function Profile({ user }) {
               </Button>
             )}
           </div>
+          <SendMessageButton address={user.address} />
         </div>
       </div>
     </div>

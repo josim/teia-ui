@@ -1,0 +1,64 @@
+.item {
+  display: block;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  text-decoration: none;
+  color: var(--text-color);
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--gray-10);
+  }
+}
+
+.unread {
+  border-left: 3px solid var(--text-color);
+  font-weight: bold;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.thread_id {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--secondary-color);
+}
+
+.mode {
+  text-transform: capitalize;
+}
+
+.participants {
+  color: var(--secondary-color);
+}
+
+.preview {
+  font-size: 14px;
+  color: var(--secondary-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sender {
+  color: var(--text-color);
+}
+
+.time {
+  font-size: 11px;
+  color: var(--secondary-color);
+  margin-top: 4px;
+}
