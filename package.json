@@ -22,7 +22,6 @@
     "html-midi-player": "^1.5.0",
     "json5": "^2.2.3",
     "keyboardjs": "^2.7.0",
-    "markdown-to-jsx": "^7.1.9",
     "mime-types": "^2.1.35",
     "react": "^18.2.0",
     "react-audio-visualize": "^1.2.0",
