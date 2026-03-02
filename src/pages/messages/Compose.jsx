@@ -67,9 +67,9 @@ export default function Compose() {
     <div className={styles.compose}>
       <div className={styles.header_fields}>
         <div className={styles.field_row}>
-          <label className={styles.field_label} id="recipients-label">
+          <span className={styles.field_label} id="recipients-label">
             To
-          </label>
+          </span>
           <div
             className={styles.field_value}
             aria-labelledby="recipients-label"
