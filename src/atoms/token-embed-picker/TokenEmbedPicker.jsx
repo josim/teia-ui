@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { searchTokensForEmbed } from '@data/api'
 import { tokenToEmbed } from '@data/messaging/token-search'
+import { useTokenSearch } from '@hooks/useTokenSearch'
 import { HashToURL } from '@utils'
 import styles from './index.module.scss'
 
@@ -8,13 +8,19 @@ const MAX_EMBEDS = 4
 
 export default function TokenEmbedPicker({ onSelect, embedCount = 0 }) {
   const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [artistTokens, setArtistTokens] = useState(null)
-  const [selectedArtist, setSelectedArtist] = useState(null)
+  const {
+    query,
+    loading,
+    results,
+    selectedArtist,
+    tokensToShow,
+    artists,
+    search,
+    selectArtist,
+    clearArtist,
+    reset,
+  } = useTokenSearch()
   const containerRef = useRef(null)
-  const debounceRef = useRef(null)
   const inputRef = useRef(null)
 
   const atLimit = embedCount >= MAX_EMBEDS
@@ -33,49 +39,6 @@ export default function TokenEmbedPicker({ onSelect, embedCount = 0 }) {
     }
   }, [open, handleClickOutside])
 
-  const doSearch = useCallback(async (q) => {
-    if (!q.trim()) {
-      setResults(null)
-      return
-    }
-    setLoading(true)
-    setArtistTokens(null)
-    setSelectedArtist(null)
-    try {
-      const res = await searchTokensForEmbed(q)
-      setResults(res)
-    } catch (err) {
-      console.error('Token search error:', err)
-      setResults({ tokens: [], artists: [] })
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const handleInput = useCallback(
-    (e) => {
-      const value = e.target.value
-      setQuery(value)
-      clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => doSearch(value), 300)
-    },
-    [doSearch]
-  )
-
-  const handleArtistClick = useCallback(async (artist) => {
-    setLoading(true)
-    setSelectedArtist(artist)
-    try {
-      const res = await searchTokensForEmbed(artist.user_address)
-      setArtistTokens(res.tokens)
-    } catch (err) {
-      console.error('Artist tokens error:', err)
-      setArtistTokens([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   const handleTokenSelect = useCallback(
     (token) => {
       onSelect(tokenToEmbed(token))
@@ -85,14 +48,8 @@ export default function TokenEmbedPicker({ onSelect, embedCount = 0 }) {
 
   const handleButtonClick = () => {
     setOpen(!open)
-    setQuery('')
-    setResults(null)
-    setArtistTokens(null)
-    setSelectedArtist(null)
+    reset()
   }
-
-  const tokensToShow = artistTokens || results?.tokens || []
-  const artists = artistTokens ? [] : results?.artists || []
 
   return (
     <div ref={containerRef} className={styles.container}>
@@ -112,7 +69,7 @@ export default function TokenEmbedPicker({ onSelect, embedCount = 0 }) {
             type="text"
             placeholder="Token ID, artist name, or address..."
             value={query}
-            onChange={handleInput}
+            onChange={(e) => search(e.target.value)}
           />
           <div className={styles.search_hint}>
             Search by token ID, tz address, or name
@@ -133,10 +90,7 @@ export default function TokenEmbedPicker({ onSelect, embedCount = 0 }) {
                 <button
                   type="button"
                   className={styles.back_btn}
-                  onClick={() => {
-                    setArtistTokens(null)
-                    setSelectedArtist(null)
-                  }}
+                  onClick={clearArtist}
                 >
                   &larr; Back to results
                 </button>
@@ -156,7 +110,7 @@ export default function TokenEmbedPicker({ onSelect, embedCount = 0 }) {
                       type="button"
                       key={artist.user_address}
                       className={styles.artist_item}
-                      onClick={() => handleArtistClick(artist)}
+                      onClick={() => selectArtist(artist)}
                     >
                       <span className={styles.artist_name}>{artist.name}</span>
                       <span className={styles.artist_address}>
