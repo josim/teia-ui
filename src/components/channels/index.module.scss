@@ -756,6 +756,290 @@
   }
 }
 
+// Token embed block (editor + display)
+.token_block_preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.token_block_media {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--border-color);
+}
+
+.token_block_info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.token_block_name {
+  font-weight: 600;
+  font-size: $font-small;
+  color: var(--text-color);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.token_block_artist {
+  font-size: $font-xsmall;
+  opacity: 0.6;
+}
+
+.token_block_collect {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  position: relative;
+}
+
+.token_block_collect_hint {
+  font-size: $font-xsmall;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.token_block_collect_btn {
+  @include resetButton;
+  font-size: $font-xsmall;
+  font-family: var(--text-font);
+  color: var(--text-color);
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--border-color);
+  }
+}
+
+.token_block_listings {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  z-index: 10;
+  min-width: 180px;
+}
+
+.token_block_listing_row {
+  @include resetButton;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  font-size: $font-xsmall;
+  font-family: var(--text-font);
+  color: var(--text-color);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--border-color);
+  }
+
+  & + & {
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+// Token search inline (inside editor)
+.token_search_inline {
+  padding: 8px;
+  border: 1px dashed var(--border-color);
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.token_search_input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  background: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--text-font);
+  font-size: $font-small;
+  box-sizing: border-box;
+  outline: none;
+  border-radius: 2px;
+
+  &:focus {
+    border-color: var(--text-color);
+  }
+}
+
+.token_search_status {
+  font-size: $font-xsmall;
+  opacity: 0.6;
+  padding: 6px 0;
+  text-align: center;
+}
+
+.token_search_back {
+  @include resetButton;
+  font-size: $font-xsmall;
+  opacity: 0.6;
+  cursor: pointer;
+  margin: 4px 0;
+  color: var(--text-color);
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.token_search_section {
+  margin-top: 6px;
+}
+
+.token_search_label {
+  font-size: $font-xsmall;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.5;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.token_search_item {
+  @include resetButton;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  width: 100%;
+  text-align: left;
+  color: var(--text-color);
+  font-family: var(--text-font);
+  font-size: $font-xsmall;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--border-color);
+  }
+}
+
+.token_search_thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--border-color);
+}
+
+.token_search_name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.token_search_artist {
+  font-size: 10px;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Mention inline
+.mention_inline {
+  color: var(--text-color);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Media upload block
+.media_uploader {
+  padding: 16px;
+  border: 2px dashed var(--border-color);
+  border-radius: 4px;
+  margin: 4px 0;
+  text-align: center;
+}
+
+.media_uploader_btn {
+  @include resetButton;
+  font-family: var(--text-font);
+  font-size: $font-small;
+  color: var(--text-color);
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 8px 16px;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.media_uploader_status {
+  font-size: $font-small;
+  opacity: 0.6;
+}
+
+.media_uploader_error {
+  font-size: $font-xsmall;
+  color: var(--error-color, #e44);
+  margin-top: 6px;
+}
+
+.media_block_img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.media_block_audio {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0;
+
+  audio {
+    width: 100%;
+  }
+}
+
+.media_block_filename {
+  font-size: $font-xsmall;
+  opacity: 0.6;
+}
+
+.media_block_video {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
 // Settings
 .settingsSection {
   border: 1px solid var(--border-color);

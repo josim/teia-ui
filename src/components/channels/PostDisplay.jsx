@@ -1,4 +1,9 @@
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { HashToURL } from '@utils'
+import { walletPreview } from '@utils/string'
+import { fetchObjktDetails } from '@data/api'
+import { useUserStore } from '@context/userStore'
 import styles from '@style'
 
 function renderInlineContent(content) {
@@ -21,9 +26,171 @@ function renderInlineContent(content) {
         </a>
       )
     }
-    // Stub for future custom inline types (teiaMention, etc.)
+    if (item.type === 'teiaMention') {
+      const { address, name } = item.props || {}
+      return (
+        <Link key={i} to={`/tz/${address}`} className={styles.mention_inline}>
+          @{name || walletPreview(address)}
+        </Link>
+      )
+    }
     return <span key={i}>{item.text || ''}</span>
   })
+}
+
+function TokenEmbedDisplay({ props }) {
+  const {
+    tokenId,
+    name,
+    artistName,
+    artist,
+    mimeType,
+    displayUri,
+    artifactUri,
+  } = props || {}
+  const [listings, setListings] = useState([])
+  const [showListings, setShowListings] = useState(false)
+  const collect = useUserStore((st) => st.collect)
+  const address = useUserStore((st) => st.address)
+
+  useEffect(() => {
+    if (!tokenId) return
+    fetchObjktDetails(tokenId).then((nft) => {
+      if (nft?.listings?.length) {
+        setListings(nft.listings.filter((l) => l.amount_left > 0))
+      }
+    })
+  }, [tokenId])
+
+  if (!tokenId) return null
+
+  const mime = mimeType || ''
+  let previewUri = displayUri || ''
+  if (mime.startsWith('image/')) previewUri = artifactUri || displayUri || ''
+
+  let media
+  if (mime.startsWith('video/') && artifactUri) {
+    media = (
+      <video
+        src={HashToURL(artifactUri)}
+        className={styles.token_block_media}
+        muted
+        loop
+        autoPlay
+        playsInline
+      />
+    )
+  } else if (mime === 'image/gif' && artifactUri) {
+    media = (
+      <img
+        src={HashToURL(artifactUri)}
+        alt=""
+        className={styles.token_block_media}
+      />
+    )
+  } else if (previewUri) {
+    media = (
+      <img
+        src={HashToURL(previewUri, 'CDN', { size: 'small' })}
+        alt=""
+        className={styles.token_block_media}
+      />
+    )
+  }
+
+  return (
+    <div className={styles.token_block_preview}>
+      {media}
+      <div className={styles.token_block_info}>
+        <Link to={`/objkt/${tokenId}`} className={styles.token_block_name}>
+          {name || `#${tokenId}`}
+        </Link>
+        {(artistName || artist) && (
+          <span className={styles.token_block_artist}>
+            by {artistName || walletPreview(artist)}
+          </span>
+        )}
+      </div>
+      {listings.length > 0 && (
+        <div className={styles.token_block_collect}>
+          {!address ? (
+            <span className={styles.token_block_collect_hint}>
+              Connect wallet to collect
+            </span>
+          ) : listings.length === 1 ? (
+            <button
+              type="button"
+              className={styles.token_block_collect_btn}
+              onClick={() => collect(listings[0])}
+            >
+              Collect for {listings[0].price / 1e6} tez
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={styles.token_block_collect_btn}
+                onClick={() => setShowListings(!showListings)}
+              >
+                Collect ({listings.length} listings)
+              </button>
+              {showListings && (
+                <div className={styles.token_block_listings}>
+                  {listings.map((l) => (
+                    <button
+                      type="button"
+                      key={l.swap_id || l.ask_id || l.offer_id}
+                      className={styles.token_block_listing_row}
+                      onClick={() => collect(l)}
+                    >
+                      {l.price / 1e6} tez —{' '}
+                      {l.seller_profile?.name ||
+                        walletPreview(l.seller_address)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MediaEmbedDisplay({ props }) {
+  const { ipfsHash, mimeType, fileName } = props || {}
+  if (!ipfsHash) return null
+
+  const url = HashToURL(ipfsHash)
+  const mime = mimeType || ''
+
+  if (mime.startsWith('image/')) {
+    return (
+      <img src={url} alt={fileName || ''} className={styles.media_block_img} />
+    )
+  }
+
+  if (mime.startsWith('audio/')) {
+    return (
+      <div className={styles.media_block_audio}>
+        {fileName && (
+          <span className={styles.media_block_filename}>{fileName}</span>
+        )}
+        <audio controls src={url} />
+      </div>
+    )
+  }
+
+  if (mime.startsWith('video/')) {
+    return <video controls src={url} className={styles.media_block_video} />
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer">
+      {fileName || ipfsHash}
+    </a>
+  )
 }
 
 function renderBlock(block, index) {
@@ -56,10 +223,10 @@ function renderBlock(block, index) {
           style={{ maxWidth: '100%' }}
         />
       )
-    // Stubs for future custom block types
     case 'teiaToken':
+      return <TokenEmbedDisplay key={block.id || index} props={block.props} />
     case 'teiaMedia':
-      return <div key={block.id || index}>[Embedded content]</div>
+      return <MediaEmbedDisplay key={block.id || index} props={block.props} />
     default:
       return content ? <p key={block.id || index}>{content}</p> : null
   }
