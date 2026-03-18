@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ariakit/react": "^0.4.23",
+    "@blocknote/ariakit": "^0.47.1",
+    "@blocknote/core": "^0.47.1",
+    "@blocknote/react": "^0.47.1",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@magenta/music": "^1.23.1",
