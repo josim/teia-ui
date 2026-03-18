@@ -646,6 +646,116 @@
   margin-bottom: 12px;
 }
 
+// Mode toggle (Chat / Post)
+.mode_toggle {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+
+  button {
+    padding: 4px 10px;
+    font-size: $font-xsmall;
+  }
+}
+
+// Post editor wrapper
+.post_editor_wrapper {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+
+  // Override BlockNote CSS variables to match Teia theme
+  --bn-colors-editor-background: var(--background-color);
+  --bn-colors-editor-text: var(--text-color);
+  --bn-font-family: var(--text-font);
+
+  .bn-editor {
+    min-height: 150px;
+    font-family: var(--text-font);
+  }
+}
+
+// Post actions (submit/cancel row)
+.post_actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--border-color);
+
+  button {
+    padding: 6px 12px;
+    font-size: $font-small;
+  }
+}
+
+// Post display (rendered post content in feed)
+.post_display {
+  font-size: $font-small;
+  line-height: 1.5;
+
+  p {
+    margin: 0 0 0.5em;
+  }
+
+  h2,
+  h3,
+  h4 {
+    margin: 0.5em 0 0.25em;
+    line-height: 1.3;
+  }
+
+  h2 {
+    font-size: 1.2em;
+  }
+
+  h3 {
+    font-size: 1.1em;
+  }
+
+  h4 {
+    font-size: 1em;
+  }
+
+  ul,
+  ol {
+    margin: 0.25em 0;
+    padding-left: 1.5em;
+  }
+
+  pre {
+    background: var(--border-color);
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+
+    code {
+      font-family: var(--text-font);
+      font-size: $font-xsmall;
+    }
+  }
+
+  code {
+    background: var(--border-color);
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 0.9em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  img {
+    max-width: 100%;
+    border-radius: 4px;
+    margin: 0.5em 0;
+  }
+}
+
 // Settings
 .settingsSection {
   border: 1px solid var(--border-color);

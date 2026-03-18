@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Page } from '@atoms/layout'
 import { Button } from '@atoms/button'
@@ -25,8 +25,11 @@ import TokenEmbedCard from '@atoms/token-embed-card/TokenEmbedCard'
 import MentionText from '@atoms/mention-text/MentionText'
 import MentionDropdown from '@atoms/mention-input/MentionDropdown'
 import { extractMentionAddresses, getMentionQuery } from '@utils/mentions'
+import PostDisplay from './PostDisplay'
 import AccessBadge from './AccessBadge'
 import styles from '@style'
+
+const PostEditor = lazy(() => import('./PostEditor'))
 
 function ChannelInfoDialog({ channel, onClose }) {
   const dialogAddrs = [
@@ -212,10 +215,16 @@ function MessageBubble({
             isOwn ? styles.bubbleOwn : styles.bubbleOther
           }`}
         >
-          <MentionText content={msg.content} profiles={profiles} />
-          {msg.payload?.embeds?.map((embed, i) => (
-            <TokenEmbedCard key={i} embed={embed} />
-          ))}
+          {msg.payload?.type === 'teia-channel-post' ? (
+            <PostDisplay blocks={msg.payload.content} />
+          ) : (
+            <>
+              <MentionText content={msg.content} profiles={profiles} />
+              {msg.payload?.embeds?.map((embed, i) => (
+                <TokenEmbedCard key={i} embed={embed} />
+              ))}
+            </>
+          )}
         </div>
         <div className={styles.bubbleMeta}>
           {isIpfs && <span className={styles.bubbleIpfsBadge}>IPFS</span>}
@@ -242,6 +251,7 @@ function MessageBubble({
 function PostForm({ channelId, channel, onPosted, replyTo, onCancelReply }) {
   const address = useShadownetStore((st) => st.address)
   const { messageFee } = useChannelFees()
+  const [mode, setMode] = useState('chat')
   const [text, setText] = useState('')
   const [storageMode, setStorageMode] = useState('ipfs')
   const [sending, setSending] = useState(false)
@@ -326,6 +336,59 @@ function PostForm({ channelId, channel, onPosted, replyTo, onCancelReply }) {
     }
   }
 
+  const handlePostSubmit = useCallback(
+    async ({ content, embeddedTokens }) => {
+      if (sending) return
+      setSending(true)
+      setProofError(null)
+
+      try {
+        let proof = undefined
+
+        if (channel.accessMode === 'allowlist' && channel.merkle_uri) {
+          const decodedMerkleUri = bytesToString(channel.merkle_uri)
+          const merkleUri = decodedMerkleUri.startsWith('ipfs://')
+            ? decodedMerkleUri
+            : null
+
+          if (merkleUri) {
+            const result = await computeProofForAddress(merkleUri, address)
+            if (!result) {
+              setProofError("You are not in this channel's allowlist")
+              setSending(false)
+              return
+            }
+            proof = result.proof
+          }
+        }
+
+        await postMessage({
+          channelId,
+          content: '',
+          messageFee,
+          proof,
+          storageMode: 'ipfs',
+          rawPayload: {
+            type: 'teia-channel-post',
+            version: 2,
+            content,
+            author: address || '',
+            timestamp: new Date().toISOString(),
+            embeddedTokens:
+              embeddedTokens?.length > 0 ? embeddedTokens : undefined,
+          },
+        })
+        setMode('chat')
+        if (onPosted) onPosted()
+      } catch (e) {
+        console.error('Post failed:', e)
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, channelId, channel, address, messageFee, onPosted]
+  )
+
   if (!address) {
     return (
       <div className={styles.notAllowed}>
@@ -336,108 +399,146 @@ function PostForm({ channelId, channel, onPosted, replyTo, onCancelReply }) {
 
   return (
     <div className={styles.postForm}>
+      <div className={styles.mode_toggle}>
+        <Button
+          shadow_box
+          selected={mode === 'chat'}
+          onClick={() => setMode('chat')}
+        >
+          Chat
+        </Button>
+        <Button
+          shadow_box
+          selected={mode === 'post'}
+          onClick={() => setMode('post')}
+        >
+          Post
+        </Button>
+      </div>
       {proofError && <div className={styles.notAllowed}>{proofError}</div>}
-      {replyTo && (
-        <div className={styles.replyBanner}>
-          <span>
-            Replying to <strong>{walletPreview(replyTo.sender)}</strong>
-            {': '}
-            {replyTo.content.length > 80
-              ? replyTo.content.slice(0, 80) + '...'
-              : replyTo.content}
-          </span>
-          <button className={styles.replyBannerClose} onClick={onCancelReply}>
-            &times;
-          </button>
-        </div>
-      )}
-      {pendingEmbeds.length > 0 && (
-        <div
-          style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: 6 }}
-        >
-          {pendingEmbeds.map((embed, i) => (
-            <TokenEmbedCard
-              key={embed.tokenId}
-              embed={embed}
-              onRemove={() =>
-                setPendingEmbeds((prev) => prev.filter((_, j) => j !== i))
-              }
-            />
-          ))}
-        </div>
-      )}
-      <div className={styles.postInputWrapper}>
-        {mentionQuery && (
-          <MentionDropdown
-            query={mentionQuery.query}
-            onSelect={(addr) => {
-              const before = text.slice(0, mentionQuery.start)
-              const after = text.slice(
-                mentionQuery.start + 1 + mentionQuery.query.length
-              )
-              const newText = `${before}@${addr} ${after}`
-              setText(newText)
-              setMentionQuery(null)
-              textareaRef.current?.focus()
-            }}
-            onClose={() => setMentionQuery(null)}
+      {mode === 'post' ? (
+        <Suspense fallback={<div>Loading editor...</div>}>
+          <PostEditor
+            onSubmit={handlePostSubmit}
+            onCancel={() => setMode('chat')}
           />
-        )}
-        <textarea
-          ref={textareaRef}
-          className={styles.postTextarea}
-          placeholder="Type a message..."
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value)
-            adjustHeight()
-            const mq = getMentionQuery(e.target.value, e.target.selectionStart)
-            setMentionQuery(mq)
-          }}
-          onKeyDown={handleKeyDown}
-          rows={1}
-          disabled={sending}
-        />
-      </div>
-      <div className={styles.postActions}>
-        <EmojiButton
-          onSelect={(emoji) => {
-            setText((prev) => prev + emoji)
-            adjustHeight()
-          }}
-        />
-        <TokenEmbedPicker
-          onSelect={(embed) =>
-            setPendingEmbeds((prev) =>
-              prev.some((e) => e.tokenId === embed.tokenId)
-                ? prev
-                : [...prev, embed]
-            )
-          }
-          embedCount={pendingEmbeds.length}
-        />
-        <Button
-          shadow_box
-          selected={storageMode === 'ipfs'}
-          onClick={() =>
-            setStorageMode(storageMode === 'onchain' ? 'ipfs' : 'onchain')
-          }
-          title={
-            storageMode === 'ipfs'
-              ? 'Using IPFS storage (lower cost)'
-              : 'Using on-chain storage'
-          }
-        >
-          {storageMode === 'ipfs' ? 'IPFS' : 'On-chain'}
-        </Button>
-        <Button
-          shadow_box
-          onClick={handleSubmit}
-          disabled={sending || (!text.trim() && pendingEmbeds.length === 0)}
-        >
-          {sending ? '...' : 'Send'}
-        </Button>
-      </div>
+        </Suspense>
+      ) : (
+        <>
+          {replyTo && (
+            <div className={styles.replyBanner}>
+              <span>
+                Replying to <strong>{walletPreview(replyTo.sender)}</strong>
+                {': '}
+                {replyTo.content.length > 80
+                  ? replyTo.content.slice(0, 80) + '...'
+                  : replyTo.content}
+              </span>
+              <button
+                className={styles.replyBannerClose}
+                onClick={onCancelReply}
+              >
+                &times;
+              </button>
+            </div>
+          )}
+          {pendingEmbeds.length > 0 && (
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 6,
+              }}
+            >
+              {pendingEmbeds.map((embed, i) => (
+                <TokenEmbedCard
+                  key={embed.tokenId}
+                  embed={embed}
+                  onRemove={() =>
+                    setPendingEmbeds((prev) => prev.filter((_, j) => j !== i))
+                  }
+                />
+              ))}
+            </div>
+          )}
+          <div className={styles.postInputWrapper}>
+            {mentionQuery && (
+              <MentionDropdown
+                query={mentionQuery.query}
+                onSelect={(addr) => {
+                  const before = text.slice(0, mentionQuery.start)
+                  const after = text.slice(
+                    mentionQuery.start + 1 + mentionQuery.query.length
+                  )
+                  const newText = `${before}@${addr} ${after}`
+                  setText(newText)
+                  setMentionQuery(null)
+                  textareaRef.current?.focus()
+                }}
+                onClose={() => setMentionQuery(null)}
+              />
+            )}
+            <textarea
+              ref={textareaRef}
+              className={styles.postTextarea}
+              placeholder="Type a message..."
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value)
+                adjustHeight()
+                const mq = getMentionQuery(
+                  e.target.value,
+                  e.target.selectionStart
+                )
+                setMentionQuery(mq)
+              }}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              disabled={sending}
+            />
+          </div>
+          <div className={styles.postActions}>
+            <EmojiButton
+              onSelect={(emoji) => {
+                setText((prev) => prev + emoji)
+                adjustHeight()
+              }}
+            />
+            <TokenEmbedPicker
+              onSelect={(embed) =>
+                setPendingEmbeds((prev) =>
+                  prev.some((e) => e.tokenId === embed.tokenId)
+                    ? prev
+                    : [...prev, embed]
+                )
+              }
+              embedCount={pendingEmbeds.length}
+            />
+            <Button
+              shadow_box
+              selected={storageMode === 'ipfs'}
+              onClick={() =>
+                setStorageMode(storageMode === 'onchain' ? 'ipfs' : 'onchain')
+              }
+              title={
+                storageMode === 'ipfs'
+                  ? 'Using IPFS storage (lower cost)'
+                  : 'Using on-chain storage'
+              }
+            >
+              {storageMode === 'ipfs' ? 'IPFS' : 'On-chain'}
+            </Button>
+            <Button
+              shadow_box
+              onClick={handleSubmit}
+              disabled={sending || (!text.trim() && pendingEmbeds.length === 0)}
+            >
+              {sending ? '...' : 'Send'}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
