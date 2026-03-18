@@ -40,6 +40,17 @@ export interface ChannelMessagePayload {
   embeds?: unknown[]
 }
 
+/** JSON payload for rich-text post messages (BlockNote). */
+export interface ChannelPostPayload {
+  type: 'teia-channel-post'
+  version: 1
+  content: Record<string, unknown>[]
+  author: string
+  timestamp: string
+  parentId?: number
+  embeddedTokens?: { token_id: string; fa2: string }[]
+}
+
 export interface ChannelMessage {
   id: number
   channel_id: string

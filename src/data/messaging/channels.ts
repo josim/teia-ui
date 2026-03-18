@@ -20,6 +20,7 @@ import type {
   AccessMode,
   Channel,
   ChannelMessagePayload,
+  ChannelPostPayload,
   ChannelMetadata,
   ChannelContractStorage,
   ChannelCreatedEvent,
@@ -329,20 +330,20 @@ export function useChannelMessages(channelId: number | undefined) {
       return Promise.all(visible.map(async (event) => {
         const p = event.payload
         const raw = p.content ? bytesToString(p.content) : ''
-        let parsed: ChannelMessagePayload | null = null
+        let parsed: ChannelMessagePayload | ChannelPostPayload | null = null
         const isIpfs = raw.startsWith('ipfs://')
 
         if (isIpfs) {
           try {
-            const json = await fetchIpfsJson<ChannelMessagePayload>(raw)
-            if (json.type === 'teia-channel-message') parsed = json
+            const json = await fetchIpfsJson<ChannelMessagePayload | ChannelPostPayload>(raw)
+            if (json.type === 'teia-channel-message' || json.type === 'teia-channel-post') parsed = json
           } catch (e) {
             console.error(`IPFS fetch failed for message #${p.message_id}:`, e)
           }
         } else {
           try {
             const json = JSON.parse(raw)
-            if (json.type === 'teia-channel-message') parsed = json
+            if (json.type === 'teia-channel-message' || json.type === 'teia-channel-post') parsed = json
           } catch (e) {
             console.error(`Failed to parse message #${p.message_id}:`, e)
           }
@@ -354,7 +355,11 @@ export function useChannelMessages(channelId: number | undefined) {
           sender: p.sender,
           parent_id: p.parent_id,
           timestamp: p.timestamp,
-          content: parsed ? parsed.content : raw,
+          content: parsed
+            ? parsed.type === 'teia-channel-post'
+              ? '[Post]'
+              : parsed.content
+            : raw,
           payload: parsed,
           isIpfs,
         }

@@ -7,7 +7,7 @@ import { SHADOWNET_CHANNEL_CONTRACT } from '@constants'
 import { ShadownetTezos, useShadownetStore } from '@context/shadownetStore'
 import { useModalStore } from '@context/modalStore'
 import { uploadFileToIPFSProxy } from '../ipfs'
-import type { AccessMode, ChannelMetadata, ChannelMessagePayload } from './channel-types'
+import type { AccessMode, ChannelMetadata, ChannelMessagePayload, ChannelPostPayload } from './channel-types'
 
 /** Upload a raw File to IPFS, returns the CID. */
 async function uploadToIPFS(file: File): Promise<string> {
@@ -155,6 +155,7 @@ export async function postMessage({
   parentId,
   storageMode = 'onchain',
   embeds,
+  rawPayload,
 }: {
   channelId: number
   content: string
@@ -163,6 +164,7 @@ export async function postMessage({
   parentId?: number
   storageMode?: 'onchain' | 'ipfs'
   embeds?: unknown[]
+  rawPayload?: ChannelPostPayload
 }) {
   const step = useModalStore.getState().step
   const show = useModalStore.getState().show
@@ -172,16 +174,19 @@ export async function postMessage({
   step('Post Message', 'Preparing transaction', true)
 
   try {
-    // Build rich message payload
-    const payload: ChannelMessagePayload = {
-      type: 'teia-channel-message',
-      version: 1,
-      content,
-      author: author || '',
-      timestamp: new Date().toISOString(),
-    }
-    if (parentId !== undefined) payload.parentId = parentId
-    if (embeds?.length) payload.embeds = embeds
+    // Build rich message payload for posts or chat payload
+    const payload: ChannelMessagePayload | ChannelPostPayload = rawPayload || (() => {
+      const p: ChannelMessagePayload = {
+        type: 'teia-channel-message',
+        version: 1,
+        content,
+        author: author || '',
+        timestamp: new Date().toISOString(),
+      }
+      if (parentId !== undefined) p.parentId = parentId
+      if (embeds?.length) p.embeds = embeds
+      return p
+    })()
 
     let contentBytes: string
     if (storageMode === 'ipfs') {
