@@ -1,0 +1,162 @@
+@import '@styles/variables.scss';
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.headline {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: $font-small;
+  opacity: 0.6;
+  margin: 0 0 24px;
+}
+
+.dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  font-size: $font-small;
+  color: var(--text-color);
+  opacity: 0.7;
+  transition: border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+
+  &:hover {
+    border-color: var(--text-color);
+    opacity: 1;
+  }
+}
+
+.preview {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.fileInfo {
+  margin-top: 8px;
+  font-size: $font-xsmall;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.error {
+  color: var(--no-vote-color);
+  text-align: center;
+  font-size: $font-small;
+  margin: 12px 0;
+}
+
+.results {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.alertBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: $font-small;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.similarity {
+  font-size: $font-large;
+  font-weight: 600;
+}
+
+.dbSize {
+  font-size: $font-xsmall;
+  opacity: 0.5;
+  margin-bottom: 16px;
+}
+
+.matches {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.matchesTitle {
+  font-size: $font-small;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.matchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.matchInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.matchFilename {
+  font-size: $font-small;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchAlert {
+  font-size: $font-xsmall;
+  font-weight: 600;
+}
+
+.matchProof {
+  font-size: $font-xsmall;
+  opacity: 0.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchLink {
+  flex-shrink: 0;
+  font-size: $font-small;
+  color: var(--text-color);
+  text-decoration: underline;
+}

@@ -111,6 +111,13 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port: 3000,
+      proxy: {
+        '/api/sbix': {
+          target: 'https://certify.sbix.io',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/sbix/, '/api/v1'),
+        },
+      },
     },
     build: {
       commonjsOptions: {

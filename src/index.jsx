@@ -93,6 +93,7 @@ import { CoreValues } from '@pages/corevalues'
 import { PrivacyPolicy } from '@pages/privacypolicy'
 import AdminCopyrightPage from '@pages/admincopyright'
 import CopyrightMarketplace from '@pages/copyrightmarketplace'
+import SbixTest from '@pages/sbix'
 
 const display_routes = (
   <>
@@ -155,6 +156,7 @@ const router = createBrowserRouter(
       <Route path="donate/*" element={<Donate />} />
       <Route exact path="terms" element={<Terms />} />
       <Route exact path="faq" element={<FAQ />} />
+      <Route exact path="sbix" element={<SbixTest />} />
       <Route exact path="codeofconduct" element={<CodeOfConduct />} />
       <Route exact path="corevalues" element={<CoreValues />} />
       <Route exact path="privacypolicy" element={<PrivacyPolicy />} />
