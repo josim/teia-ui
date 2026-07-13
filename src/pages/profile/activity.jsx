@@ -1,14 +1,18 @@
 import { useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Loading } from '@atoms/loading'
+import { useUserStore } from '@context/userStore'
 import { useUserActivity } from '@data/swr'
 import useActivityFilter from '@hooks/use-activity-filter'
 import { resolveActivityEvent, MARKET_FILTERS } from '@utils/activity'
 import { ActivityList, ActivityFilters } from '@components/activity'
+import CollectorExport from '@components/collector-export/CollectorExport'
 import styles from './activity.module.scss'
 
 export default function Activity() {
   const { address } = useOutletContext()
+  const viewerAddress = useUserStore((st) => st.address)
+  const isOwnProfile = Boolean(address) && viewerAddress === address
 
   const type = useActivityFilter()
   const market = useActivityFilter()
@@ -53,6 +57,8 @@ export default function Activity() {
 
   return (
     <div className={styles.activity}>
+      {isOwnProfile && <CollectorExport artistAddress={address} />}
+
       <ActivityFilters active={type.active} onToggle={type.toggle} />
       <ActivityFilters
         active={market.active}
