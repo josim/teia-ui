@@ -23,6 +23,7 @@ export const PATH = {
   WIKI: '/wiki',
   SYNC: '/sync',
   MINT: '/mint',
+  ASSISTANT: '/assistant',
   OBJKT: '/objkt',
   TAGS: '/tags',
 }

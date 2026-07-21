@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.4",
     "@magenta/music": "^1.23.1",
     "@taquito/beacon-wallet": "^25.0.0",
     "@taquito/michelson-encoder": "^25.0.0",

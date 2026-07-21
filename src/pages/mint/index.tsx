@@ -5,7 +5,7 @@ import { useUserStore } from '@context/userStore'
 import { AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm, useFormState } from 'react-hook-form'
-import { Outlet } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
 
 const TABS: TabOptions[] = [
   { title: 'Edit', to: '' },
@@ -27,6 +27,17 @@ export default function Mint() {
   const proxyName = useUserStore((st) => st.proxyName)
 
   const [balance, setBalance] = useState<number>()
+
+  // the assistant panel prefills the mint store and signals via navigation
+  // state so an already-mounted form picks up the new values
+  const location = useLocation()
+  const assistantPrefill = (location.state as any)?.assistantPrefill
+  useEffect(() => {
+    if (assistantPrefill) {
+      methods.reset(useMintStore.getState())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assistantPrefill])
 
   const { isValid, errors, isDirty } = useFormState({
     control: methods.control,

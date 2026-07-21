@@ -62,6 +62,7 @@ import {
   Art4ArtistsFeed,
 } from '@pages/home/feeds'
 import Mint from '@pages/mint'
+import Assistant from '@pages/assistant'
 import { ObjktDisplay } from '@pages/objkt-display'
 import {
   Info,
@@ -195,6 +196,7 @@ const router = createBrowserRouter(
         <Route index element={<MintForm />} />
         <Route path="preview" element={<Preview />} />
       </Route>
+      <Route exact path="assistant" element={<Assistant />} />
       <Route exact path="copyright/*" element={<CopyrightPage />}>
         <Route index element={<CopyrightForm />} />
         <Route path="preview" element={<CopyrightPreview />} />

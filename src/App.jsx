@@ -4,6 +4,7 @@ import { Loading as Preloading } from '@atoms/loading'
 import { AnimatePresence } from 'framer-motion'
 import { Debug } from '@atoms/debug'
 import { Header } from '@components/header'
+import { AssistantPanel } from '@components/assistant'
 import useFool from '@hooks/use-fool'
 
 const App = () => {
@@ -21,6 +22,7 @@ const App = () => {
         <Header key="header" />
         <Outlet />
       </AnimatePresence>
+      <AssistantPanel />
     </>
   )
 }
