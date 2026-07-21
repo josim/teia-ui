@@ -5,12 +5,22 @@ import styles from '@style'
 import useSettings from '@hooks/use-settings'
 import { useAssistantStore } from '@context/assistantStore'
 import { useModalStore } from '@context/modalStore'
-import { Settings, validateAction } from '@components/assistant'
 import {
-  artifactNeedsCover,
-  executeAgentMint,
-  executeAgentSwap,
-} from '@utils/assistantMint'
+  MODE_INTROS,
+  MODE_PLACEHOLDERS,
+  SALE_EXECUTORS,
+  Settings,
+  validateAction,
+} from '@components/assistant'
+import { ASSISTANT_MODES } from '@utils/assistant'
+import { artifactNeedsCover, executeAgentMint } from '@utils/assistantMint'
+import {
+  clearLastQueryResult,
+  downloadFile,
+  getLastQueryResult,
+  toCsv,
+  toFlatRows,
+} from '@utils/assistantData'
 
 const VISION_MIMETYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_VISION_MB = 5
@@ -23,9 +33,45 @@ const fileToBase64 = (file) =>
     reader.readAsDataURL(file)
   })
 
+/** Data tab. */
+const DATA_PRESETS = [
+  {
+    label: 'holders of OBJKT …',
+    prompt: 'Who holds OBJKT ',
+    fill: true,
+  },
+  {
+    label: 'my top 10 collectors',
+    prompt: 'Who are my top 10 collectors by editions held of my work?',
+  },
+  {
+    label: 'my sales last month',
+    prompt:
+      'What are my total sales (count and volume in tez) in the last month?',
+  },
+  {
+    label: 'my buyers last year',
+    prompt:
+      'Give me a list of everyone who bought my work over the last year, with what they bought, when, and for how much.',
+  },
+  {
+    label: 'my most collected piece',
+    prompt: 'Which of my pieces has sold the most editions?',
+  },
+]
+
 const ACTION_LABELS = {
   prepare_mint: 'Mint this OBJKT',
   prepare_swap: 'List for sale',
+  prepare_cancel: 'Cancel listing',
+  prepare_reswap: 'Change listing price',
+}
+
+const CONFIRM_LABELS = {
+  prepare_mint: 'Mint',
+  prepare_swap: 'List',
+  prepare_cancel: 'Cancel listing',
+  prepare_reswap: 'Change price',
 }
 
 const PendingCard = ({ artifact, cover, onDone }) => {
@@ -56,13 +102,13 @@ const PendingCard = ({ artifact, cover, onDone }) => {
           logAction(action, params)
           onDone()
         }
-      } else if (action === 'prepare_swap') {
+      } else if (SALE_EXECUTORS[action]) {
         const invalid = validateAction(pendingAction)
         if (invalid) {
           setProblem(invalid)
           return
         }
-        const { error, opHash } = await executeAgentSwap(params)
+        const { error, opHash } = await SALE_EXECUTORS[action](params)
         if (error) {
           setProblem(error)
         } else if (opHash) {
@@ -114,7 +160,7 @@ const PendingCard = ({ artifact, cover, onDone }) => {
       {problem && <p className={styles.error}>{problem}</p>}
       <div className={styles.pendingButtons}>
         <Button box onClick={confirm} disabled={busy} alt="confirm and sign">
-          {busy ? 'Waiting…' : action === 'prepare_mint' ? 'Mint' : 'List'}
+          {busy ? 'Waiting…' : CONFIRM_LABELS[action]}
         </Button>
         <Button onClick={dismissAction} alt="dismiss action">
           Cancel
@@ -124,13 +170,85 @@ const PendingCard = ({ artifact, cover, onDone }) => {
   )
 }
 
+const DataResultCard = ({ onClear }) => {
+  const result = getLastQueryResult()
+  const [showQuery, setShowQuery] = useState(false)
+  if (!result) return null
+  const { rows, rootField, query } = result
+  const flat = toFlatRows(rows.slice(0, 50))
+  const cols = flat.length
+    ? [...new Set(flat.flatMap((r) => Object.keys(r)))]
+    : []
+
+  return (
+    <div className={styles.pending}>
+      <h3>
+        {rootField} — {rows.length} rows
+      </h3>
+      <div className={styles.tableWrap}>
+        <table className={styles.resultTable}>
+          <thead>
+            <tr>
+              {cols.map((c) => (
+                <th key={c}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {flat.map((r, i) => (
+              <tr key={i}>
+                {cols.map((c) => (
+                  <td key={c}>{r[c] === undefined ? '' : String(r[c])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > 50 && (
+        <p className={styles.hint}>
+          Showing 50 of {rows.length} rows — exports include everything.
+        </p>
+      )}
+      <div className={styles.pendingButtons}>
+        <Button
+          onClick={() => downloadFile('teia-data.csv', 'text/csv', toCsv(rows))}
+          alt="download as CSV"
+        >
+          csv
+        </Button>
+        <Button
+          onClick={() =>
+            downloadFile(
+              'teia-data.json',
+              'application/json',
+              JSON.stringify(rows, null, 2)
+            )
+          }
+          alt="download as JSON"
+        >
+          json
+        </Button>
+        <Button onClick={() => setShowQuery(!showQuery)} alt="show the query">
+          query
+        </Button>
+        <Button onClick={onClear} alt="clear result">
+          clear
+        </Button>
+      </div>
+      {showQuery && <pre className={styles.previewText}>{query}</pre>}
+    </div>
+  )
+}
+
 export default function Assistant() {
-  const messages = useAssistantStore((st) => st.messages)
+  const mode = useAssistantStore((st) => st.mode)
+  const messages = useAssistantStore((st) => st.messages[st.mode])
   const isLoading = useAssistantStore((st) => st.isLoading)
   const error = useAssistantStore((st) => st.error)
   const settings = useAssistantStore((st) => st.settings)
   const pendingAction = useAssistantStore((st) => st.pendingAction)
-  const { sendMessage } = useAssistantStore.getState()
+  const { sendMessage, setMode } = useAssistantStore.getState()
 
   const [input, setInput] = useState('')
   const [showSettings, setShowSettings] = useState(false)
@@ -138,6 +256,7 @@ export default function Assistant() {
   const [cover, setCover] = useState(null)
   const [announced, setAnnounced] = useState(true)
   const [coverAnnounced, setCoverAnnounced] = useState(true)
+  const [, bumpResultTick] = useState(0)
 
   const artifactInputRef = useRef(null)
   const coverInputRef = useRef(null)
@@ -160,7 +279,7 @@ export default function Assistant() {
     }
     let text = input.trim()
     let attachment
-    if (artifact && !announced) {
+    if (mode === 'mint' && artifact && !announced) {
       attachment = {
         name: artifact.name,
         mimeType: artifact.type || 'application/octet-stream',
@@ -172,7 +291,7 @@ export default function Assistant() {
         attachment.base64 = await fileToBase64(artifact)
       }
     }
-    if (cover && !coverAnnounced) {
+    if (mode === 'mint' && cover && !coverAnnounced) {
       text = `${text}\n[attached cover image: ${cover.name}]`.trim()
     }
     if (!text && !attachment) return
@@ -201,17 +320,31 @@ export default function Assistant() {
         </div>
       ) : (
         <div className={styles.container}>
+          <div className={styles.modeTabs}>
+            {ASSISTANT_MODES.map((m) => (
+              <Button
+                key={m.id}
+                onClick={() => setMode(m.id)}
+                selected={mode === m.id}
+                alt={`${m.label} mode`}
+              >
+                {m.label}
+              </Button>
+            ))}
+          </div>
           <div className={styles.body}>
             <div className={styles.chatCol}>
               <div className={styles.messages}>
                 {messages.length === 0 && (
                   <div className={styles.empty}>
-                    <p>
-                      Hi — I'm the Teia assistant. Attach your artwork with
-                      “attach file” below, tell me about the piece, and I'll
-                      help you fill in everything and mint it. I can also list
-                      your OBJKTs for sale.
-                    </p>
+                    <p>{MODE_INTROS[mode]}</p>
+                    {mode === 'mint' && (
+                      <p>
+                        Attach your artwork with “attach file” below and tell me
+                        about the piece — I can suggest metadata from what I
+                        see.
+                      </p>
+                    )}
                     <p>
                       Nothing happens without you: you review every action and
                       sign it with your own wallet.
@@ -240,7 +373,7 @@ export default function Assistant() {
               {error && <p className={styles.error}>{error}</p>}
             </div>
 
-            {pendingAction && (
+            {pendingAction ? (
               <div className={styles.side}>
                 <PendingCard
                   artifact={artifact}
@@ -251,85 +384,122 @@ export default function Assistant() {
                   }}
                 />
               </div>
-            )}
+            ) : mode === 'data' && getLastQueryResult() ? (
+              <div className={styles.side}>
+                <DataResultCard
+                  onClear={() => {
+                    clearLastQueryResult()
+                    bumpResultTick((t) => t + 1)
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
 
-          <div className={styles.attachRow}>
-            <input
-              type="file"
-              ref={artifactInputRef}
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) {
-                  setArtifact(file)
-                  setAnnounced(false)
-                }
-                e.target.value = ''
-              }}
-            />
-            <input
-              type="file"
-              ref={coverInputRef}
-              accept="image/jpeg,image/png,image/gif"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) {
-                  setCover(file)
-                  setCoverAnnounced(false)
-                }
-                e.target.value = ''
-              }}
-            />
-            <button
-              type="button"
-              className={styles.attachButton}
-              onClick={() => artifactInputRef.current?.click()}
-            >
-              attach file
-            </button>
-            {artifact && (
-              <span className={styles.chip}>
-                {artifact.name}
-                <button
-                  type="button"
-                  onClick={() => setArtifact(null)}
-                  aria-label="remove attached file"
-                >
-                  ✕
-                </button>
-              </span>
-            )}
-            {needsCover && (
+          {mode === 'mint' && (
+            <div className={styles.attachRow}>
+              <input
+                type="file"
+                ref={artifactInputRef}
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setArtifact(file)
+                    setAnnounced(false)
+                  }
+                  e.target.value = ''
+                }}
+              />
+              <input
+                type="file"
+                ref={coverInputRef}
+                accept="image/jpeg,image/png,image/gif"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setCover(file)
+                    setCoverAnnounced(false)
+                  }
+                  e.target.value = ''
+                }}
+              />
               <button
                 type="button"
                 className={styles.attachButton}
-                onClick={() => coverInputRef.current?.click()}
+                onClick={() => artifactInputRef.current?.click()}
               >
-                attach cover
+                attach file
               </button>
-            )}
-            {cover && (
-              <span className={styles.chip}>
-                {cover.name}
+              {artifact && (
+                <span className={styles.chip}>
+                  {artifact.name}
+                  <button
+                    type="button"
+                    onClick={() => setArtifact(null)}
+                    aria-label="remove attached file"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+              {needsCover && (
                 <button
                   type="button"
-                  onClick={() => setCover(null)}
-                  aria-label="remove cover image"
+                  className={styles.attachButton}
+                  onClick={() => coverInputRef.current?.click()}
                 >
-                  ✕
+                  attach cover
                 </button>
-              </span>
-            )}
-          </div>
+              )}
+              {cover && (
+                <span className={styles.chip}>
+                  {cover.name}
+                  <button
+                    type="button"
+                    onClick={() => setCover(null)}
+                    aria-label="remove cover image"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
+          {mode === 'data' && (
+            <div className={styles.presetRow}>
+              {DATA_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  className={styles.chipButton}
+                  disabled={isLoading}
+                  onClick={() => {
+                    if (!configured) {
+                      setShowSettings(true)
+                      return
+                    }
+                    if (p.fill) {
+                      setInput(p.prompt)
+                    } else {
+                      sendMessage(p.prompt)
+                    }
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <form className={styles.inputRow} onSubmit={onSubmit}>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe your piece or ask me anything…"
+              placeholder={MODE_PLACEHOLDERS[mode]}
               disabled={isLoading}
               aria-label="Message the assistant"
             />

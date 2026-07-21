@@ -12,14 +12,27 @@ import {
 } from '@utils/assistant'
 import type {
   AssistantAction,
+  AssistantMode,
   AssistantSettings,
   ChatAttachment,
   ChatMessage,
 } from '@utils/assistant'
 
-/** Cap the persisted history so localStorage stays small. */
-const MAX_MESSAGES = 60
+/** Per-mode caps keep localStorage small and the loop context bounded. */
+const MODE_CAPS: Record<AssistantMode, number> = {
+  mint: 60,
+  sale: 30,
+  faq: 20,
+  data: 20,
+}
 const MAX_LOG = 50
+
+const emptyThreads = (): Record<AssistantMode, ChatMessage[]> => ({
+  mint: [],
+  sale: [],
+  faq: [],
+  data: [],
+})
 
 interface ActionLogEntry {
   date: string
@@ -30,21 +43,27 @@ interface ActionLogEntry {
 
 interface AssistantState {
   settings: AssistantSettings
-  messages: ChatMessage[]
+  messages: Record<AssistantMode, ChatMessage[]>
   /** Memory of what the user used the assistant for */
   actionLog: ActionLogEntry[]
 
   // transient
+  mode: AssistantMode
   isOpen: boolean
   isLoading: boolean
   error?: string
   pendingAction?: AssistantAction
 
   toggle: () => void
+  setMode: (mode: AssistantMode) => void
   setSettings: (settings: Partial<AssistantSettings>) => void
   sendMessage: (content: string, attachment?: ChatAttachment) => Promise<void>
   dismissAction: () => void
-  logAction: (action: string, params: Record<string, any>, opHash?: string) => void
+  logAction: (
+    action: string,
+    params: Record<string, any>,
+    opHash?: string
+  ) => void
   clearChat: () => void
 }
 
@@ -61,9 +80,10 @@ export const useAssistantStore = create<AssistantState>()(
     persist(
       (set, get) => ({
         settings: defaultSettings,
-        messages: [],
+        messages: emptyThreads(),
         actionLog: [],
 
+        mode: 'mint' as AssistantMode,
         isOpen: false,
         isLoading: false,
         error: undefined,
@@ -71,40 +91,47 @@ export const useAssistantStore = create<AssistantState>()(
 
         toggle: () => set({ isOpen: !get().isOpen }),
 
+        setMode: (mode) =>
+          set({ mode, pendingAction: undefined, error: undefined }),
+
         setSettings: (settings) =>
           set({ settings: { ...get().settings, ...settings } }),
 
         sendMessage: async (content, attachment) => {
-          const { settings, messages } = get()
+          const { settings, messages, mode } = get()
+          const cap = MODE_CAPS[mode]
           const text = attachment
             ? `${content}\n[attached file: ${attachment.name} (${attachment.mimeType})]`.trim()
             : content
-          const next = [
-            ...messages,
+          const thread = [
+            ...messages[mode],
             { role: 'user' as const, content: text },
-          ].slice(-MAX_MESSAGES)
+          ].slice(-cap)
           set({
-            messages: next,
+            messages: { ...messages, [mode]: thread },
             isLoading: true,
             error: undefined,
             pendingAction: undefined,
           })
           try {
-            const { message, action } = await sendChat(
+            const { message, action, trace } = await sendChat(
               settings,
-              next,
+              mode,
+              thread,
               attachment
             )
+            const reply =
+              (message ||
+                (action ? 'Here is what I prepared — please review.' : '…')) +
+              (trace.length ? `\n\n${trace.join(' ')}` : '')
             set({
-              messages: [
-                ...next,
-                {
-                  role: 'assistant' as const,
-                  content:
-                    message ||
-                    (action ? 'Here is what I prepared — please review.' : '…'),
-                },
-              ].slice(-MAX_MESSAGES),
+              messages: {
+                ...get().messages,
+                [mode]: [
+                  ...thread,
+                  { role: 'assistant' as const, content: reply },
+                ].slice(-cap),
+              },
               pendingAction: action,
               isLoading: false,
             })
@@ -124,13 +151,29 @@ export const useAssistantStore = create<AssistantState>()(
             pendingAction: undefined,
           }),
 
-        clearChat: () =>
-          set({ messages: [], pendingAction: undefined, error: undefined }),
+        clearChat: () => {
+          const { messages, mode } = get()
+          set({
+            messages: { ...messages, [mode]: [] },
+            pendingAction: undefined,
+            error: undefined,
+          })
+        },
       }),
       {
         name: 'assistant',
         storage: createJSONStorage(() => localStorage),
-        version: 1,
+        version: 2,
+        migrate: (persisted: any, version) => {
+          if (version < 2 && persisted) {
+            // v1 kept a single flat message array — move it to the mint thread
+            const old = Array.isArray(persisted.messages)
+              ? persisted.messages
+              : []
+            persisted.messages = { ...emptyThreads(), mint: old }
+          }
+          return persisted
+        },
         partialize: (state) => ({
           settings: state.settings,
           messages: state.messages,

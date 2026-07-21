@@ -51,6 +51,14 @@
   }
 }
 
+.modeTabs {
+  display: flex;
+  gap: 24px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: $font-small;
+}
+
 .messages {
   flex: 1;
   overflow-y: auto;
@@ -58,6 +66,38 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.resultTable {
+  border-collapse: collapse;
+  font-size: $font-xsmall;
+  width: 100%;
+
+  th,
+  td {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  th {
+    font-weight: 700;
+    position: sticky;
+    top: 0;
+    background-color: var(--background-color);
+  }
 }
 
 .empty {
@@ -155,6 +195,39 @@
 .pendingButtons {
   display: flex;
   gap: 16px;
+}
+
+.presetRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-color);
+  font-size: $font-xsmall;
+}
+
+// suggestion chip: the box button's small sibling — same letterpress
+// language (hard right/bottom stroke, no radius), sized for quick prompts
+.chipButton {
+  background-color: var(--gray-5);
+  color: var(--gray-100);
+  border: 1px solid var(--border-color);
+  border-right: 2px solid var(--gray-100);
+  border-bottom: 2px solid var(--gray-100);
+  padding: 3px 12px;
+  font-size: $font-xsmall;
+  cursor: pointer;
+
+  &:hover {
+    border-right-color: var(--gray-50);
+    border-bottom-color: var(--gray-50);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
 }
 
 .attachRow {

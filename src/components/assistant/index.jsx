@@ -6,16 +6,39 @@ import { useAssistantStore } from '@context/assistantStore'
 import { useMintStore } from '@context/mintStore'
 import { useModalStore } from '@context/modalStore'
 import { PATH } from '@constants'
-import { testConnection } from '@utils/assistant'
+import { ASSISTANT_MODES, testConnection } from '@utils/assistant'
 import {
   buildMintFields,
   executeAgentSwap,
   validateMintParams,
 } from '@utils/assistantMint'
+import { executeAgentCancel, executeAgentReswap } from '@utils/assistantSale'
 
 const ACTION_LABELS = {
   prepare_mint: 'Prefill the mint form',
   prepare_swap: 'List for sale',
+  prepare_cancel: 'Cancel listing',
+  prepare_reswap: 'Change listing price',
+}
+
+export const MODE_INTROS = {
+  mint: 'Hi — I help you prepare a mint: metadata, editions, royalties, text mints.',
+  sale: 'Hi — I help you manage sales: see what you own and have listed, list, delist, or change prices.',
+  faq: 'Hi — ask me anything about how Teia works; I answer from the official FAQ and docs.',
+  data: 'Hi — I build TezTok data queries for you: sales history, collectors, holdings — with CSV/JSON export.',
+}
+
+export const MODE_PLACEHOLDERS = {
+  mint: 'Ask about minting…',
+  sale: 'Ask about your listings and sales…',
+  faq: 'Ask how Teia works…',
+  data: 'Describe the data you want…',
+}
+
+export const SALE_EXECUTORS = {
+  prepare_swap: executeAgentSwap,
+  prepare_cancel: executeAgentCancel,
+  prepare_reswap: executeAgentReswap,
 }
 
 export const validateAction = ({ action, params }) => {
@@ -26,6 +49,16 @@ export const validateAction = ({ action, params }) => {
     if (!params.objkt_id) return 'Missing OBJKT id'
     if (!(parseFloat(params.price) > 0)) return 'Price must be greater than 0'
     if (!(parseInt(params.amount) >= 1)) return 'Amount must be at least 1'
+  }
+  if (action === 'prepare_cancel') {
+    if (!params.swap_id || !params.contract_address)
+      return 'Missing swap id or contract address'
+  }
+  if (action === 'prepare_reswap') {
+    if (!params.objkt_id || params.swap_id === undefined)
+      return 'Missing OBJKT id or swap id'
+    if (!(parseFloat(params.new_price) > 0))
+      return 'New price must be greater than 0'
   }
   return null
 }
@@ -54,18 +87,19 @@ const PendingAction = () => {
       navigate(PATH.MINT, { state: { assistantPrefill: Date.now() } })
       return
     }
-    if (action === 'prepare_swap') {
+    const executor = SALE_EXECUTORS[action]
+    if (executor) {
       setBusy(true)
       setProblem(null)
       try {
-        const { error, opHash } = await executeAgentSwap(params)
+        const { error, opHash } = await executor(params)
         if (error) {
           setProblem(error)
         } else if (opHash) {
           logAction(action, params, opHash)
         }
       } catch (e) {
-        useModalStore.getState().showError('Swap', e)
+        useModalStore.getState().showError('Assistant', e)
       } finally {
         setBusy(false)
       }
@@ -197,11 +231,12 @@ export const Settings = ({ onDone }) => {
 
 export const AssistantPanel = () => {
   const isOpen = useAssistantStore((st) => st.isOpen)
-  const messages = useAssistantStore((st) => st.messages)
+  const mode = useAssistantStore((st) => st.mode)
+  const messages = useAssistantStore((st) => st.messages[st.mode])
   const isLoading = useAssistantStore((st) => st.isLoading)
   const error = useAssistantStore((st) => st.error)
   const settings = useAssistantStore((st) => st.settings)
-  const { toggle, sendMessage } = useAssistantStore.getState()
+  const { toggle, sendMessage, setMode } = useAssistantStore.getState()
 
   const [input, setInput] = useState('')
   const [showSettings, setShowSettings] = useState(false)
@@ -267,17 +302,25 @@ export const AssistantPanel = () => {
         <Settings onDone={() => setShowSettings(false)} />
       ) : (
         <>
+          <div className={styles.modeTabs}>
+            {ASSISTANT_MODES.map((m) => (
+              <Button
+                key={m.id}
+                onClick={() => setMode(m.id)}
+                selected={mode === m.id}
+                alt={`${m.label} mode`}
+              >
+                {m.label}
+              </Button>
+            ))}
+          </div>
           <div className={styles.messages}>
             {messages.length === 0 && (
               <div className={styles.empty}>
+                <p>{MODE_INTROS[mode]}</p>
                 <p>
-                  Hi — I can help you prepare a mint or list your OBJKTs for
-                  sale. I only ever prepare things: you review and sign every
-                  action with your own wallet.
-                </p>
-                <p>
-                  Try “mint 10 editions of my new piece with 15% royalties” or
-                  “list 2 editions of objkt 123456 for 5 tez”.
+                  I only ever prepare things: you review and sign every action
+                  with your own wallet.
                 </p>
                 {!configured && (
                   <p>To start, add your API key under settings.</p>
@@ -309,7 +352,7 @@ export const AssistantPanel = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about minting or listing…"
+              placeholder={MODE_PLACEHOLDERS[mode]}
               disabled={isLoading}
               aria-label="Message the assistant"
             />
