@@ -71,6 +71,52 @@
   font-size: 0.85em;
 }
 
+.filter_rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.filter_row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
+
+.chip {
+  @include resetButton();
+  border: 1px solid var(--border-color);
+  padding: 0.35em 0.8em;
+  color: var(--gray-60);
+  font: inherit;
+  font-size: 0.8em;
+
+  &:hover {
+    color: var(--text-color);
+  }
+
+  &:disabled {
+    color: var(--gray-40);
+    border-color: var(--gray-30);
+    cursor: not-allowed;
+  }
+}
+
+.chip_active {
+  color: var(--text-color);
+  border-color: var(--text-color);
+  font-weight: 600;
+}
+
+.date_input {
+  font: inherit;
+  font-size: 0.8em;
+  padding: 0.35em 0.6em;
+  background: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
 // --- Stat cards grid ---
 .stats_grid {
   display: grid;

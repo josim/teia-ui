@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import classnames from 'classnames'
 import OverviewSection from './OverviewSection'
+import SalesSection from './SalesSection'
 import ChannelStatsSection from './ChannelStatsSection'
 import PollStatsSection from './PollStatsSection'
 import TokenStatsSection from './TokenStatsSection'
@@ -8,6 +9,7 @@ import styles from '@style'
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
+  { key: 'sales', label: 'Sales' },
   { key: 'channels', label: 'Channels & DMs' },
   { key: 'poll', label: 'Poll comments' },
   { key: 'token', label: 'Token comments' },
@@ -19,7 +21,7 @@ export default function StatsPage() {
   return (
     <div className={styles.stats}>
       <header className={styles.header}>
-        <h2 className={styles.title}>Messaging stats</h2>
+        <h2 className={styles.title}>Stats</h2>
       </header>
 
       <nav className={styles.tabs}>
@@ -39,6 +41,7 @@ export default function StatsPage() {
 
       <div className={styles.panel}>
         {tab === 'overview' && <OverviewSection />}
+        {tab === 'sales' && <SalesSection />}
         {tab === 'channels' && <ChannelStatsSection />}
         {tab === 'poll' && <PollStatsSection />}
         {tab === 'token' && <TokenStatsSection />}
