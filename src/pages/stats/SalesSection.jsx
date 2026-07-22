@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import classnames from 'classnames'
-import { Loading } from '@atoms/loading'
 import StatCard from '@pages/admin/StatCard'
 import {
   useSalesEvents,
@@ -20,13 +19,14 @@ import styles from '@style'
 const PRIMARY_COLOR = '#e8871a'
 const SECONDARY_COLOR = '#0891b2'
 
+// Custom is still being finished.
 const WINDOWS = [
   { key: 30, label: '30 days' },
   { key: 90, label: '90 days' },
   { key: 180, label: '6 months' },
   { key: 365, label: '12 months' },
-  { key: 'all', label: 'All time' },
-  { key: 'custom', label: 'Custom' },
+  { key: 'all', label: 'All time', wip: true },
+  { key: 'custom', label: 'Custom', wip: true },
 ]
 
 const MARKETPLACES = [
@@ -245,6 +245,8 @@ export default function SalesSection() {
               className={classnames(styles.chip, {
                 [styles.chip_active]: windowKey === w.key,
               })}
+              disabled={w.wip}
+              title={w.wip ? 'Coming soon' : undefined}
               onClick={() => handleWindowClick(w.key)}
             >
               {w.label}
@@ -333,9 +335,9 @@ export default function SalesSection() {
         ) : loadError && !isValidating ? (
           <p className={styles.muted}>Couldn’t load sales stats.</p>
         ) : (
-          <Loading
-            message={`Loading sales… ${(progress ?? 0).toLocaleString()} rows`}
-          />
+          <p className={styles.muted}>
+            Loading sales… {(progress ?? 0).toLocaleString()} rows
+          </p>
         )
       ) : (
         <>
