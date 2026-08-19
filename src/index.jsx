@@ -34,6 +34,7 @@ import {
   WikiProposals,
   WikiAdmin,
 } from '@pages/wiki'
+import { CurationsHome, CurationDetail, CurationEditor } from '@pages/curations'
 import { TeiaPolls, PollDisplay } from '@pages/polls'
 import { Polls, CreatePolls, Discourse } from '@pages/polls/tabs'
 import { FAQ } from '@pages/faq'
@@ -84,6 +85,7 @@ import TextPosts from '@pages/profile/text-posts'
 import Activity from '@pages/profile/activity'
 import ProfileChannels from '@pages/profile/channels'
 import ProfileComments from '@pages/profile/comments'
+import ProfileCurations from '@pages/profile/curations'
 
 // Messaging
 import NotificationsCenter from '@pages/notifications'
@@ -134,6 +136,7 @@ const display_routes = (
     <Route exact path="channels" element={<ProfileChannels />} />
     <Route exact path="comments" element={<ProfileComments />} />
     <Route exact path="copyrights" element={<CopyrightDisplay />} />
+    <Route exact path="curations" element={<ProfileCurations />} />
   </>
 )
 
@@ -258,6 +261,10 @@ const router = createBrowserRouter(
         <Route path=":id/edit" element={<WikiEdit />} />
         <Route path=":id/history" element={<WikiHistory />} />
       </Route>
+      <Route path="curations" element={<CurationsHome />} />
+      <Route path="curations/create" element={<CurationEditor />} />
+      <Route path="curations/:id" element={<CurationDetail />} />
+      <Route path="curations/:id/edit" element={<CurationEditor />} />
       <Route path="publicchannels" element={<ChannelList />} />
       <Route path="notifications" element={<NotificationsCenter />} />
       <Route path="inbox/channels" element={<ChannelList />} />

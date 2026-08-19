@@ -21,6 +21,7 @@ export const PATH = {
   POLLS: '/polls',
   POLL: '/poll',
   WIKI: '/wiki',
+  CURATIONS: '/curations',
   SYNC: '/sync',
   MINT: '/mint',
   OBJKT: '/objkt',
@@ -189,6 +190,11 @@ export const WIKI_CONTRACT = 'KT1UW3BnYemVjA4HggNZeR4wq2eKbVvpq15Y'
 // page_id of the curated landing page (Table of Contents) shown at /wiki, or
 // null to fall back to an auto-generated list of top-level pages.
 export const WIKI_INDEX_PAGE_ID: number | null = null
+
+// --- Curations ---
+export const CURATIONS_CONTRACT = 'KT1NdDcfE1mzAc6nYgV5psGcK3L86FqogKVq'
+export const CURATION_CREATE_FEE = 0
+export const CURATION_EDIT_FEE = 0
 
 export const QUIPUSWAP_TEIA_URL = `https://quipuswap.com/swap/tez-${DAO_TOKEN_CONTRACT}_0`
 
