@@ -27,7 +27,7 @@ export default function CurationCard({ curation }) {
     !showCover && !thumb && tokenCount > 0 ? content.tokens[0] : undefined
   const { data: firstToken } = useCurationCardToken(firstRef)
   const firstThumb = firstToken
-    ? tokenThumb(firstToken.teia_meta?.preview_uri)
+    ? tokenThumb(firstToken.display_uri || firstToken.thumbnail_uri)
     : ''
 
   const fallbackThumb = thumb || firstThumb

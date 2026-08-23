@@ -61,6 +61,9 @@ const parseList = (str) => {
 const previewOf = (t) =>
   t?.preview_uri || t?.teia_meta?.preview_uri || undefined
 
+// We can use the preview to load faster, but we need to find a way to support old tokens (no thumbnail/displayuri)
+const coverUriOf = (t) => t?.display_uri || t?.thumbnail_uri
+
 const eventImageUrl = (url) =>
   !url ? undefined : url.startsWith('ipfs://') ? msgIpfsToUrl(url) : url
 
@@ -126,6 +129,7 @@ export default function CurationEditor() {
           token_id: String(t.token_id),
           name: enriched?.name || `#${t.token_id}`,
           display_uri: enriched?.display_uri,
+          thumbnail_uri: enriched?.thumbnail_uri,
           preview_uri: previewOf(enriched),
           artist_address: enriched?.artist_address,
           feeTez: t.fee_mutez ? mutezToTez(t.fee_mutez) : undefined,
@@ -147,6 +151,7 @@ export default function CurationEditor() {
               ...t,
               name: enriched.name || t.name,
               display_uri: t.display_uri ?? enriched.display_uri,
+              thumbnail_uri: t.thumbnail_uri ?? enriched.thumbnail_uri,
               preview_uri: t.preview_uri ?? previewOf(enriched),
               artist_address: t.artist_address ?? enriched.artist_address,
             }
@@ -160,7 +165,7 @@ export default function CurationEditor() {
     [selected]
   )
   const coverChoices = useMemo(
-    () => selected.filter((t) => previewOf(t) || t.display_uri),
+    () => selected.filter((t) => coverUriOf(t)),
     [selected]
   )
   const featuredToken = useMemo(() => {
@@ -337,7 +342,7 @@ export default function CurationEditor() {
         title: title.trim(),
         description: description.trim(),
         coverImage: coverImage || undefined,
-        coverThumbnail: coverImage ? undefined : previewOf(featuredToken),
+        coverThumbnail: coverImage ? undefined : coverUriOf(featuredToken),
         layout: 'masonry',
         tokens,
         tags: parseList(tagsInput).slice(0, 20),
@@ -453,11 +458,11 @@ export default function CurationEditor() {
               />
             ) : (
               featuredToken &&
-              tokenThumb(previewOf(featuredToken)) && (
+              tokenThumb(coverUriOf(featuredToken)) && (
                 <img
                   className={styles.cover}
                   style={{ maxWidth: 200, aspectRatio: '1 / 1' }}
-                  src={tokenThumb(previewOf(featuredToken))}
+                  src={tokenThumb(coverUriOf(featuredToken))}
                   alt="cover"
                 />
               )

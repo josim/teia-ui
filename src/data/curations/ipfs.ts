@@ -1,6 +1,7 @@
 // Curation IPFS document + gateway helpers
 
 import { uploadMsgJsonToIPFS } from '@data/messaging/ipfs'
+import { HashToURL } from '@utils'
 import type {
   ChannelRef,
   CurationContent,
@@ -27,9 +28,8 @@ export function curationIpfsUrl(uri?: string): string {
   return `${MSG_PROXY}/ipfs/${stripIpfs(uri)}`
 }
 
-export function tokenThumb(previewUri?: string | null): string {
-  const proxy = import.meta.env.VITE_IMGPROXY
-  return proxy && previewUri ? `${proxy}${previewUri}` : ''
+export function tokenThumb(uri?: string | null): string {
+  return uri ? HashToURL(uri, 'CDN') : ''
 }
 
 export function normalizeFee(fee?: CurationFeeConfig | null): {

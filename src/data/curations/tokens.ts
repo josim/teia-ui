@@ -67,9 +67,6 @@ const CARD_TOKEN_QUERY = gql`
       token_id
       display_uri
       thumbnail_uri
-      teia_meta {
-        preview_uri
-      }
     }
   }
 `

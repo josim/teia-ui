@@ -76,7 +76,7 @@ export default function CurationDetail() {
   const showCover = Boolean(cover) && !coverFailed
   const headerThumb = content?.cover_thumbnail
     ? tokenThumb(content.cover_thumbnail)
-    : tokenThumb(tokens?.[0]?.teia_meta?.preview_uri)
+    : tokenThumb(tokens?.[0]?.display_uri || tokens?.[0]?.thumbnail_uri)
 
   const hasMusic = (tokens || []).some(isPlayable)
   const playerPath = `${PATH.CURATIONS}/${curation.id}/play`
