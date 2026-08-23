@@ -24,6 +24,7 @@ import { useChannelList } from '@data/messaging/channels'
 import { useCalendarEvents } from '@hooks/use-calendar'
 import { useUserStore } from '@context/userStore'
 import { useModalStore } from '@context/modalStore'
+import { useCurationDraftStore } from '@context/curationDraftStore'
 import RelatedPicker from '@components/calendar/RelatedPicker'
 import TokenPicker from './TokenPicker'
 import SelectedTray from './SelectedTray'
@@ -88,19 +89,25 @@ export default function CurationEditor() {
   const { data: existingTokens } = useCurationTokens(content?.tokens)
   const { data: roles } = useCurationRoles(address)
 
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [coverImage, setCoverImage] = useState('')
+  const [draft] = useState(() =>
+    isEdit ? null : useCurationDraftStore.getState().drafts.new
+  )
+
+  const [title, setTitle] = useState(draft?.title || '')
+  const [description, setDescription] = useState(draft?.description || '')
+  const [coverImage, setCoverImage] = useState(draft?.coverImage || '')
   const [coverUploading, setCoverUploading] = useState(false)
-  const [coverTokenKey, setCoverTokenKey] = useState('')
-  const [feeMode, setFeeMode] = useState('global')
-  const [feeUnit, setFeeUnit] = useState('tez')
-  const [globalFeeTez, setGlobalFeeTez] = useState('')
-  const [globalFeePercent, setGlobalFeePercent] = useState('')
-  const [selected, setSelected] = useState([])
-  const [tagsInput, setTagsInput] = useState('')
-  const [channels, setChannels] = useState([])
-  const [events, setEvents] = useState([])
+  const [coverTokenKey, setCoverTokenKey] = useState(draft?.coverTokenKey || '')
+  const [feeMode, setFeeMode] = useState(draft?.feeMode || 'global')
+  const [feeUnit, setFeeUnit] = useState(draft?.feeUnit || 'tez')
+  const [globalFeeTez, setGlobalFeeTez] = useState(draft?.globalFeeTez || '')
+  const [globalFeePercent, setGlobalFeePercent] = useState(
+    draft?.globalFeePercent || ''
+  )
+  const [selected, setSelected] = useState(draft?.selected || [])
+  const [tagsInput, setTagsInput] = useState(draft?.tagsInput || '')
+  const [channels, setChannels] = useState(draft?.channels || [])
+  const [events, setEvents] = useState(draft?.events || [])
   const [activePicker, setActivePicker] = useState(null) // 'channels' | 'events' | null
   const [submitting, setSubmitting] = useState(false)
 
@@ -139,6 +146,44 @@ export default function CurationEditor() {
     )
     prefilled.current = true
   }, [isEdit, content, existingTokens])
+
+  // Drafts land in localStorage via zustand
+  const draftTimer = useRef(null)
+  useEffect(() => {
+    if (isEdit) return
+    clearTimeout(draftTimer.current)
+    draftTimer.current = setTimeout(() => {
+      useCurationDraftStore.getState().setDraft('new', {
+        title,
+        description,
+        coverImage,
+        coverTokenKey,
+        feeMode,
+        feeUnit,
+        globalFeeTez,
+        globalFeePercent,
+        selected,
+        tagsInput,
+        channels,
+        events,
+      })
+    }, 500)
+    return () => clearTimeout(draftTimer.current)
+  }, [
+    isEdit,
+    title,
+    description,
+    coverImage,
+    coverTokenKey,
+    feeMode,
+    feeUnit,
+    globalFeeTez,
+    globalFeePercent,
+    selected,
+    tagsInput,
+    channels,
+    events,
+  ])
 
   useEffect(() => {
     if (!isEdit || !existingTokens?.length) return
@@ -363,6 +408,8 @@ export default function CurationEditor() {
         navigate(`${PATH.CURATIONS}/${curationId}`)
       } else {
         await createCuration(input)
+        clearTimeout(draftTimer.current)
+        useCurationDraftStore.getState().clearDraft('new')
         navigate(PATH.CURATIONS)
       }
     } catch {
