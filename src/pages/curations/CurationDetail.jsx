@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Page, Container } from '@atoms/layout'
 import { Button } from '@atoms/button'
 import { Loading } from '@atoms/loading'
@@ -19,12 +19,15 @@ import { useUserProfiles } from '@data/roles'
 import { useUserStore } from '@context/userStore'
 import { walletPreview } from '@utils/string'
 import CurationCover from './CurationCover'
+import { isPlayable } from '@data/music'
+import { openPlayerPopup } from '@utils/player'
 import styles from '@style'
 
 export default function CurationDetail() {
   const { id } = useParams()
   const curationId = Number(id)
   const address = useUserStore((st) => st.address)
+  const navigate = useNavigate()
   const [coverFailed, setCoverFailed] = useState(false)
 
   const { curation, isLoading } = useCuration(curationId)
@@ -75,6 +78,12 @@ export default function CurationDetail() {
     ? tokenThumb(content.cover_thumbnail)
     : tokenThumb(tokens?.[0]?.teia_meta?.preview_uri)
 
+  const hasMusic = (tokens || []).some(isPlayable)
+  const playerPath = `${PATH.CURATIONS}/${curation.id}/play`
+  const openPlayer = () => {
+    if (!openPlayerPopup(playerPath)) navigate(playerPath)
+  }
+
   return (
     <Page title={title}>
       <Container>
@@ -97,22 +106,34 @@ export default function CurationDetail() {
               ) : null}
               <h1>{title}</h1>
             </div>
-            {canEdit && (
+            {(hasMusic || canEdit) && (
               <div className={styles.detail_actions}>
-                <Button shadow_box to={`${PATH.CURATIONS}/${curation.id}/edit`}>
-                  Edit
-                </Button>
-                <Button
-                  shadow_box
-                  onClick={() =>
-                    setCurationHidden({
-                      curationId: curation.id,
-                      hidden: !curation.hidden,
-                    })
-                  }
-                >
-                  {curation.hidden ? 'Unhide' : 'Hide'}
-                </Button>
+                {hasMusic && (
+                  <Button shadow_box onClick={openPlayer}>
+                    Listen
+                  </Button>
+                )}
+                {canEdit && (
+                  <>
+                    <Button
+                      shadow_box
+                      to={`${PATH.CURATIONS}/${curation.id}/edit`}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      shadow_box
+                      onClick={() =>
+                        setCurationHidden({
+                          curationId: curation.id,
+                          hidden: !curation.hidden,
+                        })
+                      }
+                    >
+                      {curation.hidden ? 'Unhide' : 'Hide'}
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
