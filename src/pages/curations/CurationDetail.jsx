@@ -23,6 +23,22 @@ import { isPlayable } from '@data/music'
 import { openPlayerPopup } from '@utils/player'
 import styles from '@style'
 
+/**
+ * Month/day block for a linked event.
+ */
+function EventDate({ startDate }) {
+  const date = startDate ? new Date(startDate) : null
+  if (!date || Number.isNaN(date.getTime())) {
+    return <span className={styles.place_glyph}>◷</span>
+  }
+  return (
+    <span className={styles.place_date}>
+      <small>{date.toLocaleDateString(undefined, { month: 'short' })}</small>
+      <b>{date.getDate()}</b>
+    </span>
+  )
+}
+
 export default function CurationDetail() {
   const { id } = useParams()
   const curationId = Number(id)
@@ -110,7 +126,7 @@ export default function CurationDetail() {
               <div className={styles.detail_actions}>
                 {hasMusic && (
                   <Button shadow_box onClick={openPlayer}>
-                    Listen
+                    ▶ Listen
                   </Button>
                 )}
                 {canEdit && (
@@ -142,26 +158,52 @@ export default function CurationDetail() {
             <p className={styles.detail_desc}>{content.description}</p>
           )}
 
-          {content?.tags?.length > 0 && (
-            <div className={styles.detail_meta}>
-              {content.tags.map((tag) => (
-                <Link key={tag} to={`${PATH.TAGS}/${tag}`}>
-                  #{tag}
+          {(content?.channels?.length > 0 || content?.events?.length > 0) && (
+            <div className={styles.places}>
+              {content.channels?.map((c) => (
+                <Link
+                  key={`ch-${c.id}`}
+                  to={`/inbox/channels/${c.id}`}
+                  className={styles.place}
+                >
+                  <span className={styles.place_glyph}>#</span>
+                  <span className={styles.place_text}>
+                    <span className={styles.place_kind}>Channel</span>
+                    <span className={styles.place_name}>{c.name}</span>
+                    <span className={styles.place_sub}>
+                      Discuss this curation
+                    </span>
+                  </span>
+                  <span className={styles.place_arrow}>→</span>
+                </Link>
+              ))}
+              {content.events?.map((e) => (
+                <Link
+                  key={`ev-${e.slug}`}
+                  to={`/calendar/event/${e.slug}`}
+                  className={styles.place}
+                >
+                  <EventDate startDate={e.startDate} />
+                  <span className={styles.place_text}>
+                    <span className={styles.place_kind}>Event</span>
+                    <span className={styles.place_name}>{e.title}</span>
+                    <span className={styles.place_sub}>Calendar</span>
+                  </span>
+                  <span className={styles.place_arrow}>→</span>
                 </Link>
               ))}
             </div>
           )}
 
-          {(content?.channels?.length > 0 || content?.events?.length > 0) && (
-            <div className={styles.detail_meta}>
-              {content.channels?.map((c) => (
-                <Link key={`ch-${c.id}`} to={`/inbox/channels/${c.id}`}>
-                  # {c.name}
-                </Link>
-              ))}
-              {content.events?.map((e) => (
-                <Link key={`ev-${e.slug}`} to={`/calendar/event/${e.slug}`}>
-                  📅 {e.title}
+          {content?.tags?.length > 0 && (
+            <div className={styles.chips}>
+              {content.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  to={`${PATH.TAGS}/${tag}`}
+                  className={styles.chip}
+                >
+                  #{tag}
                 </Link>
               ))}
             </div>

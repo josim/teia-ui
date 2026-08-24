@@ -20,6 +20,7 @@ export interface EventRef {
   slug: string
   title: string
   image?: string
+  startDate?: string
 }
 
 export type CurationLayout = 'masonry' | 'list'

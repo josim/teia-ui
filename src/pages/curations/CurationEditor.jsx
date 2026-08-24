@@ -319,6 +319,9 @@ export default function CurationEditor() {
         ? ''
         : new Date(e.repTs).toISOString().slice(0, 10),
       image: e.image,
+      startDate: Number.isNaN(e.repTs)
+        ? undefined
+        : new Date(e.repTs).toISOString(),
     }))
   }, [allEvents])
   const selectedChannelKeys = useMemo(
@@ -343,7 +346,15 @@ export default function CurationEditor() {
       on
         ? prev.some((e) => e.slug === item.id)
           ? prev
-          : [...prev, { slug: item.id, title: item.name, image: item.image }]
+          : [
+              ...prev,
+              {
+                slug: item.id,
+                title: item.name,
+                image: item.image,
+                startDate: item.startDate,
+              },
+            ]
         : prev.filter((e) => e.slug !== item.id)
     )
 
