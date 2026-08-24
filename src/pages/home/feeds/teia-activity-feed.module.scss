@@ -11,6 +11,12 @@
   color: var(--secondary-color);
 }
 
+.section_heading {
+  margin: 2.5rem 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .view_toggle {
   display: flex;
   gap: 0.5rem;
@@ -20,6 +26,7 @@
 .view_chip {
   appearance: none;
   cursor: pointer;
+  text-decoration: none;
   padding: 0.35rem 0.9rem;
   font-size: 0.85rem;
   font-weight: 600;

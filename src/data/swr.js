@@ -1110,7 +1110,50 @@ export function useOfficialTextPosts(limit = 100) {
   )
 }
 
+/** Used by every activity feed query. */
+const ActivityEventFieldsFragment = gql`
+  fragment activityEventFields on events {
+    id
+    timestamp
+    ophash
+    implements
+    type
+    price
+    amount
+    editions
+    seller_address
+    seller_profile {
+      name
+    }
+    buyer_address
+    buyer_profile {
+      name
+    }
+    from_address
+    from_profile {
+      name
+    }
+    to_address
+    to_profile {
+      name
+    }
+    token {
+      token_id
+      fa2_address
+      name
+      display_uri
+      thumbnail_uri
+      mime_type
+      artist_address
+      artist_profile {
+        name
+      }
+    }
+  }
+`
+
 const USER_ACTIVITY_QUERY = gql`
+  ${ActivityEventFieldsFragment}
   query UserActivity($conds: [events_bool_exp!]!, $limit: Int!, $offset: Int!) {
     events(
       # One condition per event kind (see userActivityConds): the active
@@ -1120,42 +1163,7 @@ const USER_ACTIVITY_QUERY = gql`
       limit: $limit
       offset: $offset
     ) {
-      id
-      timestamp
-      ophash
-      implements
-      type
-      price
-      amount
-      editions
-      seller_address
-      seller_profile {
-        name
-      }
-      buyer_address
-      buyer_profile {
-        name
-      }
-      from_address
-      from_profile {
-        name
-      }
-      to_address
-      to_profile {
-        name
-      }
-      token {
-        token_id
-        fa2_address
-        name
-        display_uri
-        thumbnail_uri
-        mime_type
-        artist_address
-        artist_profile {
-          name
-        }
-      }
+      ...activityEventFields
     }
   }
 `
@@ -1215,7 +1223,76 @@ export function useUserActivity(address, activeTypes = []) {
   }
 }
 
+const TEXT_ACTIVITY_QUERY = gql`
+  ${ActivityEventFieldsFragment}
+  query TextActivity($conds: [events_bool_exp!]!, $limit: Int!, $offset: Int!) {
+    events(
+      where: {
+        token: {
+          metadata_status: { _eq: "processed" }
+          mime_type: { _in: ["text/plain", "text/markdown"] }
+        }
+        fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
+        _or: $conds
+      }
+      order_by: [{ level: desc }, { opid: desc }]
+      limit: $limit
+      offset: $offset
+    ) {
+      ...activityEventFields
+    }
+  }
+`
+
+//Platform-wide activity for text posts
+export function useTextActivity(activeTypes = []) {
+  const filterKey = activeTypes.length
+    ? [...activeTypes].sort().join(',')
+    : 'all'
+  const conds = globalActivityConds(activeTypes)
+
+  const getKey = (pageIndex, previousPageData) => {
+    if (previousPageData && previousPageData.length === 0) return null
+    return ['text-activity', filterKey, pageIndex]
+  }
+
+  const { data, error, size, setSize, isValidating } = useSWRInfinite(
+    getKey,
+    // SWR v1 spreads array-key parts as separate fetcher args.
+    async (_ns, _filters, pageIndex) => {
+      const res = await request(
+        import.meta.env.VITE_TEIA_GRAPHQL_API,
+        TEXT_ACTIVITY_QUERY,
+        {
+          conds,
+          limit: ACTIVITY_PAGE_SIZE,
+          offset: pageIndex * ACTIVITY_PAGE_SIZE,
+        }
+      )
+      return res.events || []
+    },
+    { revalidateFirstPage: false, revalidateOnFocus: false }
+  )
+
+  const events = data ? data.flat() : []
+  const isLoadingInitial = !data && !error
+  const isLoadingMore =
+    isValidating && data && typeof data[size - 1] === 'undefined'
+  const isReachingEnd =
+    error || (data && data[data.length - 1]?.length < ACTIVITY_PAGE_SIZE)
+
+  return {
+    events,
+    error,
+    isLoadingInitial,
+    isLoadingMore,
+    isReachingEnd,
+    loadMore: () => setSize(size + 1),
+  }
+}
+
 const GLOBAL_ACTIVITY_QUERY = gql`
+  ${ActivityEventFieldsFragment}
   query GlobalActivity($conds: [events_bool_exp!]!, $limit: Int!, $offset: Int!) {
     events(
       # One condition per event kind (see globalActivityConds): the active
@@ -1229,42 +1306,7 @@ const GLOBAL_ACTIVITY_QUERY = gql`
       limit: $limit
       offset: $offset
     ) {
-      id
-      timestamp
-      ophash
-      implements
-      type
-      price
-      amount
-      editions
-      seller_address
-      seller_profile {
-        name
-      }
-      buyer_address
-      buyer_profile {
-        name
-      }
-      from_address
-      from_profile {
-        name
-      }
-      to_address
-      to_profile {
-        name
-      }
-      token {
-        token_id
-        fa2_address
-        name
-        display_uri
-        thumbnail_uri
-        mime_type
-        artist_address
-        artist_profile {
-          name
-        }
-      }
+      ...activityEventFields
     }
   }
 `
