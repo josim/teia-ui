@@ -20,11 +20,7 @@ import {
 } from '@data/api'
 import laggy from '@utils/swr-laggy-middleware'
 import { useModerators } from '@data/roles'
-import {
-  ACTIVITY_EVENT_TYPES,
-  MINT_TYPES,
-  TEIA_LISTING_TYPES,
-} from '@utils/activity'
+import { userActivityConds, globalActivityConds } from '@utils/activity'
 
 function reorderBigmapData(data, subKey, decode = false) {
   const bigmapData = data ? {} : undefined
@@ -1115,45 +1111,11 @@ export function useOfficialTextPosts(limit = 100) {
 }
 
 const USER_ACTIVITY_QUERY = gql`
-  query UserActivity(
-    $address: String!
-    $types: [String!]!
-    $mintTypes: [String!]!
-    $limit: Int!
-    $offset: Int!
-  ) {
+  query UserActivity($conds: [events_bool_exp!]!, $limit: Int!, $offset: Int!) {
     events(
-      where: {
-        _or: [
-          {
-            # Trades, listings and transfers the user is a direct party to.
-            _and: [
-              {
-                _or: [
-                  { seller_address: { _eq: $address } }
-                  { buyer_address: { _eq: $address } }
-                  { from_address: { _eq: $address } }
-                  { to_address: { _eq: $address } }
-                ]
-              }
-              {
-                _or: [
-                  { implements: { _eq: "SALE" } }
-                  { type: { _in: $types } }
-                ]
-              }
-            ]
-          }
-          {
-            # Mints — the user is identified by artist_address, not by any of
-            # the trade/transfer address fields (which are null on a mint).
-            _and: [
-              { artist_address: { _eq: $address } }
-              { type: { _in: $mintTypes } }
-            ]
-          }
-        ]
-      }
+      # One condition per event kind (see userActivityConds): the active
+      # filter chips are pushed into the query so pages stay full.
+      where: { _or: $conds }
       order_by: [{ level: desc }, { opid: desc }]
       limit: $limit
       offset: $offset
@@ -1206,24 +1168,27 @@ const ACTIVITY_PAGE_SIZE = 50
  * Note: events are pre-filtered to the relevant types here; category resolution
  * and chip filtering happen client-side in the Activity tab.
  */
-export function useUserActivity(address) {
+export function useUserActivity(address, activeTypes = []) {
+  const filterKey = activeTypes.length
+    ? [...activeTypes].sort().join(',')
+    : 'all'
+  const conds = userActivityConds(address, activeTypes)
+
   const getKey = (pageIndex, previousPageData) => {
     if (!address) return null
     if (previousPageData && previousPageData.length === 0) return null
-    return ['user-activity', address, pageIndex]
+    return ['user-activity', address, filterKey, pageIndex]
   }
 
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     getKey,
     // SWR v1 spreads array-key parts as separate fetcher args.
-    async (_ns, addr, pageIndex) => {
+    async (_ns, _addr, _filters, pageIndex) => {
       const res = await request(
         import.meta.env.VITE_TEIA_GRAPHQL_API,
         USER_ACTIVITY_QUERY,
         {
-          address: addr,
-          types: ACTIVITY_EVENT_TYPES,
-          mintTypes: MINT_TYPES,
+          conds,
           limit: ACTIVITY_PAGE_SIZE,
           offset: pageIndex * ACTIVITY_PAGE_SIZE,
         }
@@ -1251,15 +1216,14 @@ export function useUserActivity(address) {
 }
 
 const GLOBAL_ACTIVITY_QUERY = gql`
-  query GlobalActivity($types: [String!]!, $limit: Int!, $offset: Int!) {
+  query GlobalActivity($conds: [events_bool_exp!]!, $limit: Int!, $offset: Int!) {
     events(
+      # One condition per event kind (see globalActivityConds): the active
+      # filter chips are pushed into the query so pages stay full.
       where: {
         token: { metadata_status: { _eq: "processed" } }
         fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
-        _or: [
-          { implements: { _eq: "SALE" } }
-          { type: { _in: $types } }
-        ]
+        _or: $conds
       }
       order_by: [{ level: desc }, { opid: desc }]
       limit: $limit
@@ -1305,27 +1269,30 @@ const GLOBAL_ACTIVITY_QUERY = gql`
   }
 `
 
-const GLOBAL_FEED_TYPES = [...MINT_TYPES, ...TEIA_LISTING_TYPES]
-
 /**
  * Platform-wide Teia/HEN activity feed (sales, listings, mints), newest first,
  * with "load more" paging. Not scoped to any address.
  */
-export function useGlobalActivity() {
+export function useGlobalActivity(activeTypes = []) {
+  const filterKey = activeTypes.length
+    ? [...activeTypes].sort().join(',')
+    : 'all'
+  const conds = globalActivityConds(activeTypes)
+
   const getKey = (pageIndex, previousPageData) => {
     if (previousPageData && previousPageData.length === 0) return null
-    return ['global-activity', pageIndex]
+    return ['global-activity', filterKey, pageIndex]
   }
 
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     getKey,
     // SWR v1 spreads array-key parts as separate fetcher args.
-    async (_ns, pageIndex) => {
+    async (_ns, _filters, pageIndex) => {
       const res = await request(
         import.meta.env.VITE_TEIA_GRAPHQL_API,
         GLOBAL_ACTIVITY_QUERY,
         {
-          types: GLOBAL_FEED_TYPES,
+          conds,
           limit: ACTIVITY_PAGE_SIZE,
           offset: pageIndex * ACTIVITY_PAGE_SIZE,
         }
