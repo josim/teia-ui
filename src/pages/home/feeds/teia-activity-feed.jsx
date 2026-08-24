@@ -3,6 +3,7 @@ import { Loading } from '@atoms/loading'
 import { Button } from '@atoms/button'
 import useSettings from '@hooks/use-settings'
 import useActivityFilter from '@hooks/use-activity-filter'
+import useAutoLoadMore from '@hooks/use-auto-load-more'
 import { useGlobalActivity } from '@data/swr'
 import { useSocialActivity } from '@data/messaging/useSocialActivity'
 import { useUserProfiles } from '@data/roles'
@@ -20,8 +21,9 @@ import {
 import activityStyles from '@components/activity/index.module.scss'
 import styles from './teia-activity-feed.module.scss'
 
-// Drop the "buy" filer, not needed here.
-const FEED_FILTERS = ACTIVITY_FILTERS.filter((f) => f.key !== 'buy')
+const FEED_FILTERS = ACTIVITY_FILTERS.filter(
+  (f) => !['buy', 'transfer'].includes(f.key)
+)
 
 const VIEWS = [
   { key: 'trades', label: 'Trades' },
@@ -42,7 +44,7 @@ function TradesFeed() {
     isLoadingMore,
     isReachingEnd,
     loadMore,
-  } = useGlobalActivity()
+  } = useGlobalActivity(type.active)
 
   const rows = useMemo(
     () =>
@@ -61,6 +63,14 @@ function TradesFeed() {
         ),
     [events, walletBlockMap, matchesType, matchesMarket]
   )
+
+  useAutoLoadMore({
+    rowCount: rows.length,
+    isLoadingInitial,
+    isReachingEnd,
+    isLoadingMore,
+    loadMore,
+  })
 
   if (error) {
     return (
