@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   useCuration,
@@ -20,6 +21,8 @@ export default function CurationPlayer() {
   const title = content?.title || `Curation ${curationId}`
   useTitle(title)
 
+  const tracks = useMemo(() => (tokens || []).filter(isPlayable), [tokens])
+
   if (isLoading) {
     return <PlayerShell tracks={[]} title={title} isLoading emptyMessage="" />
   }
@@ -35,7 +38,6 @@ export default function CurationPlayer() {
   }
 
   const contentLoading = !content || (content.tokens?.length && !tokens)
-  const tracks = (tokens || []).filter(isPlayable)
 
   return (
     <PlayerShell

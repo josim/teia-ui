@@ -67,6 +67,11 @@ export default function PlayerShell({
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
 
+  // Latest playlist position, using media-session handlers
+  const stateRef = useRef({ currentIndex: 0, count: 0 })
+  stateRef.current = { currentIndex, count: tracks.length }
+  const wantPlayRef = useRef(false)
+
   useEffect(() => {
     const { theme, applyTheme } = useLocalSettings.getState()
     applyTheme(theme)
@@ -74,6 +79,63 @@ export default function PlayerShell({
 
   const track = tracks[currentIndex]
   const src = track ? HashToURL(track.artifact_uri, 'CDN', { size: 'raw' }) : ''
+
+  const togglePlay = () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (audio.paused) audio.play().catch(() => {})
+    else audio.pause()
+  }
+
+  // Switch tracks; `forcePlay` starts playback
+  const changeTrack = useCallback((index, forcePlay) => {
+    const audio = audioRef.current
+    const shouldPlay = forcePlay ?? !(audio?.paused ?? true)
+    if (index === stateRef.current.currentIndex) {
+      if (shouldPlay) audio?.play().catch(() => {})
+      return
+    }
+    wantPlayRef.current = shouldPlay
+    setCurrentIndex(index)
+  }, [])
+
+  const selectTrack = useCallback(
+    (index) => changeTrack(index, true),
+    [changeTrack]
+  )
+
+  const onEnded = () => {
+    if (currentIndex < tracks.length - 1) changeTrack(currentIndex + 1, true)
+  }
+
+  // Testing new source
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const sync = () => {
+      const playing = !audio.paused
+      setIsPlaying(playing)
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'
+      }
+    }
+    sync()
+    audio.addEventListener('play', sync)
+    audio.addEventListener('pause', sync)
+    return () => {
+      audio.removeEventListener('play', sync)
+      audio.removeEventListener('pause', sync)
+    }
+  }, [src])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !src) return
+    if (wantPlayRef.current) {
+      wantPlayRef.current = false
+      audio.play().catch(() => {})
+    }
+  }, [src])
 
   // Track progress/duration from the media element
   useEffect(() => {
@@ -96,73 +158,74 @@ export default function PlayerShell({
     if (audioRef.current) audioRef.current.volume = volume
   }, [volume])
 
+  // Lock-screen metadata
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !src) return
-    if (!isPlaying) {
-      audio.pause()
-      return
-    }
-    let superseded = false
-    audio.play().catch(() => {
-      if (!superseded) setIsPlaying(false)
-    })
-    return () => {
-      superseded = true
-    }
-  }, [isPlaying, src])
-
-  const selectTrack = useCallback((index) => {
-    setCurrentIndex(index)
-    setIsPlaying(true)
-  }, [])
-
-  const onEnded = () => {
-    if (currentIndex < tracks.length - 1) setCurrentIndex(currentIndex + 1)
-    else setIsPlaying(false)
-  }
-  // Lock-screen media controls
-  useEffect(() => {
-    if (!('mediaSession' in navigator)) return
-    const ms = navigator.mediaSession
-    const track = tracks[currentIndex]
-    if (!track) return
-
-    ms.metadata = new window.MediaMetadata({
+    if (!('mediaSession' in navigator) || !track) return
+    navigator.mediaSession.metadata = new window.MediaMetadata({
       title: track.name || '',
       artist: artistName(track),
       album: title,
       artwork: [{ src: coverURL(track, 'raw'), sizes: '512x512' }],
     })
-    ms.playbackState = isPlaying ? 'playing' : 'paused'
+  }, [track, title])
 
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !('mediaSession' in navigator)) return
+    const update = () => {
+      if (!Number.isFinite(audio.duration)) return
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: audio.duration,
+          position: Math.min(audio.currentTime, audio.duration),
+          playbackRate: audio.playbackRate,
+        })
+      } catch {
+        /* not supported */
+      }
+    }
+    const events = ['durationchange', 'seeked', 'play', 'pause']
+    events.forEach((name) => audio.addEventListener(name, update))
+    update()
+    return () =>
+      events.forEach((name) => audio.removeEventListener(name, update))
+  }, [src])
+
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < tracks.length - 1
+
+  // Lock-screen media controls
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return
     const set = (action, handler) => {
       try {
-        ms.setActionHandler(action, handler)
+        navigator.mediaSession.setActionHandler(action, handler)
       } catch {
         /* not supported in this browser */
       }
     }
-    set('play', () => setIsPlaying(true))
-    set('pause', () => setIsPlaying(false))
+    set('play', () => audioRef.current?.play().catch(() => {}))
+    set('pause', () => audioRef.current?.pause())
+    set('seekto', (details) => {
+      const audio = audioRef.current
+      if (audio && Number.isFinite(details.seekTime)) {
+        audio.currentTime = details.seekTime
+      }
+    })
     set(
       'previoustrack',
-      currentIndex > 0 ? () => setCurrentIndex(currentIndex - 1) : null
+      hasPrev ? () => changeTrack(stateRef.current.currentIndex - 1) : null
     )
     set(
       'nexttrack',
-      currentIndex < tracks.length - 1
-        ? () => setCurrentIndex(currentIndex + 1)
-        : null
+      hasNext ? () => changeTrack(stateRef.current.currentIndex + 1) : null
     )
 
     return () => {
-      set('play', null)
-      set('pause', null)
-      set('previoustrack', null)
-      set('nexttrack', null)
+      const actions = ['play', 'pause', 'seekto', 'previoustrack', 'nexttrack']
+      actions.forEach((action) => set(action, null))
     }
-  }, [tracks, currentIndex, isPlaying, title])
+  }, [hasPrev, hasNext, changeTrack])
 
   if (isLoading) {
     return (
@@ -265,8 +328,8 @@ export default function PlayerShell({
           type="button"
           className={styles.player_ctrl}
           aria-label="Previous track"
-          disabled={currentIndex === 0}
-          onClick={() => setCurrentIndex(currentIndex - 1)}
+          disabled={!hasPrev}
+          onClick={() => changeTrack(currentIndex - 1)}
         >
           &#9198;
         </button>
@@ -274,7 +337,7 @@ export default function PlayerShell({
           type="button"
           className={classnames(styles.player_ctrl, styles.player_ctrl_main)}
           aria-label={isPlaying ? 'Pause' : 'Play'}
-          onClick={() => setIsPlaying(!isPlaying)}
+          onClick={togglePlay}
         >
           {isPlaying ? (
             <PauseIcon fill="var(--text-color)" width={28} height={28} />
@@ -286,8 +349,8 @@ export default function PlayerShell({
           type="button"
           className={styles.player_ctrl}
           aria-label="Next track"
-          disabled={currentIndex === tracks.length - 1}
-          onClick={() => setCurrentIndex(currentIndex + 1)}
+          disabled={!hasNext}
+          onClick={() => changeTrack(currentIndex + 1)}
         >
           &#9197;
         </button>
