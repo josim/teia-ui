@@ -162,6 +162,37 @@ $social-grid: 104px minmax(120px, 1fr) minmax(180px, 3fr) minmax(120px, 1fr)
   padding: 1.2rem 0;
 }
 
+.action_head,
+.action_row {
+  display: grid;
+  grid-template-columns: 110px 200px minmax(0, 1fr) 100px;
+  align-items: center;
+  gap: 1rem;
+  min-width: 560px;
+}
+
+.action_head {
+  padding: 0 0 0.6rem;
+  color: var(--secondary-color);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.action_row {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.action_target {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .badge_channel {
   background: var(--gray-60);
 }

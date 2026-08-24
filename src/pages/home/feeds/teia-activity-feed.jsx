@@ -30,6 +30,9 @@ const VIEWS = [
   { key: 'trades', label: 'Trades' },
   { key: 'social', label: 'Social' },
   { key: 'text', label: 'Text' },
+  { key: 'calendar', label: 'Calendar' },
+  { key: 'copyright', label: 'Copyright' },
+  { key: 'wiki', label: 'Wiki' },
 ]
 
 /** Trade activity (sales/mints/listings/transfers) — the original feed. */
