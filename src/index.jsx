@@ -109,6 +109,7 @@ import ReactDOM from 'react-dom/client'
 import {
   createBrowserRouter,
   createRoutesFromElements,
+  Navigate,
   Route,
   RouterProvider,
 } from 'react-router-dom'
@@ -121,6 +122,8 @@ import MintForm from '@components/form/MintForm'
 import { ListsFeed } from '@pages/home/feeds/lists-feed'
 import { MidiFeed } from '@pages/home/feeds/mime-type-feed'
 import TeiaActivity from '@pages/activity'
+import { TradesFeed, SocialFeed } from '@pages/home/feeds/teia-activity-feed'
+import TextActivityFeed from '@pages/home/feeds/text-activity-feed'
 import CopyrightForm from '@components/copyright/wizard/form/CopyrightForm'
 import CopyrightPage from '@pages/copyright'
 import { CopyrightPreview } from '@components/copyright/wizard/preview'
@@ -293,7 +296,12 @@ const router = createBrowserRouter(
             </RequireModerator>
           }
         />
-        <Route path="activity" element={<TeiaActivity />} />
+        <Route path="activity" element={<TeiaActivity />}>
+          <Route index element={<Navigate to="trades" replace />} />
+          <Route path="trades" element={<TradesFeed />} />
+          <Route path="social" element={<SocialFeed />} />
+          <Route path="text" element={<TextActivityFeed />} />
+        </Route>
         <Route path="tags/:tag" element={<Tags />} />
         <Route path="tz/:address/*" element={<Display />}>
           {display_routes}

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
 import { Loading } from '@atoms/loading'
 import { Button } from '@atoms/button'
 import useSettings from '@hooks/use-settings'
@@ -28,10 +29,11 @@ const FEED_FILTERS = ACTIVITY_FILTERS.filter(
 const VIEWS = [
   { key: 'trades', label: 'Trades' },
   { key: 'social', label: 'Social' },
+  { key: 'text', label: 'Text' },
 ]
 
 /** Trade activity (sales/mints/listings/transfers) — the original feed. */
-function TradesFeed() {
+export function TradesFeed() {
   const { walletBlockMap } = useSettings()
   const type = useActivityFilter()
   const market = useActivityFilter()
@@ -116,7 +118,7 @@ function TradesFeed() {
  * Social activity: public channel posts + poll/token comments.
  * Mounted only when the Social view is active, so its hooks don't fetch up front.
  */
-function SocialFeed() {
+export function SocialFeed() {
   const kind = useActivityFilter()
   const { matches } = kind
   const {
@@ -199,29 +201,26 @@ function SocialFeed() {
 }
 
 /**
- * Global Activity Tab — a Trades / Social view switch over the platform feed.
+ * Global Activity layout, each feed is a route now
  */
 export function GlobalActivityFeed() {
-  const [view, setView] = useState('trades')
-
   return (
     <div className={styles.feed}>
       <div className={styles.view_toggle}>
         {VIEWS.map((v) => (
-          <button
+          <NavLink
             key={v.key}
-            type="button"
-            className={`${styles.view_chip} ${
-              view === v.key ? styles.view_chip_active : ''
-            }`}
-            onClick={() => setView(v.key)}
+            to={`/activity/${v.key}`}
+            className={({ isActive }) =>
+              `${styles.view_chip} ${isActive ? styles.view_chip_active : ''}`
+            }
           >
             {v.label}
-          </button>
+          </NavLink>
         ))}
       </div>
 
-      {view === 'trades' ? <TradesFeed /> : <SocialFeed />}
+      <Outlet />
     </div>
   )
 }
