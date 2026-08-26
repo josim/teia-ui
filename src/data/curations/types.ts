@@ -54,12 +54,24 @@ export interface Curation {
   id: number
   owner: string
   cid: string
+  /** Hidden by the owner. */
   hidden: boolean
+  /** Hidden by a Teia moderator / multisig user. Public = !hidden && !moderated. */
+  moderated: boolean
+}
+
+/** Only used for the migration, will be removed later on */
+export interface V1Curation {
+  id: number
+  owner: string
+  cid: string
+  migratedTo?: number
 }
 
 export interface CurationUserRoles {
   isModerator: boolean
   isMultisig: boolean
   canModerate: boolean
+  /** Token gate is off on v4: any synced wallet may create. */
   canCreate: boolean
 }

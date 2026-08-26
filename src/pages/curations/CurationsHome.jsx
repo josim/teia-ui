@@ -11,6 +11,7 @@ import {
 } from '@data/curations'
 import { useUserStore } from '@context/userStore'
 import CurationGrid from './CurationGrid'
+import MigrationNotice from './MigrationNotice'
 import styles from '@style'
 
 export default function CurationsHome() {
@@ -40,6 +41,8 @@ export default function CurationsHome() {
             </Button>
           )}
         </div>
+
+        <MigrationNotice address={address} />
 
         <div className={styles.toolbar}>
           <Input

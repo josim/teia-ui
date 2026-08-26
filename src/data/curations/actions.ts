@@ -1,12 +1,13 @@
 // Curations write layer.
 //
-//  - any DAO-token holder calls create_curation
-//  - moderators / multisig users may edit/hide any curation
+//  - only the owner can edit or hide
+//  - moderators / multisig users can toggle `moderated`
 //
 // After a write we can't match SWR keys by predicate (swr ^1.3), so we seed the
 // immutable doc under its CID key and revalidate the exact keys we can compute.
 
 import { mutate } from 'swr'
+import { OpKind } from '@taquito/taquito'
 import {
   CURATIONS_CONTRACT,
   CURATION_CREATE_FEE,
@@ -24,10 +25,15 @@ import type {
   EventRef,
 } from './types'
 
+const feeLabel = (mutez: number) => `${mutez / 1_000_000} ꜩ`
+
 function friendlyError(e: unknown): unknown {
   const raw = JSON.stringify(e ?? '')
-  if (raw.includes('CUR_NOT_AUTHORIZED') || raw.includes('CUR_NOT_OWNER')) {
-    return new Error('You are not authorized to perform this action.')
+  if (raw.includes('CUR_NOT_OWNER')) {
+    return new Error('Only the owner can edit or hide this curation.')
+  }
+  if (raw.includes('CUR_NOT_AUTHORIZED')) {
+    return new Error('Only Teia moderators can do that.')
   }
   if (raw.includes('CUR_NO_TOKENS')) {
     return new Error('You must hold Teia (TEIA) tokens to create a curation.')
@@ -36,13 +42,18 @@ function friendlyError(e: unknown): unknown {
     return new Error('That curation no longer exists.')
   }
   if (raw.includes('CUR_INCORRECT_FEE')) {
-    return new Error('The attached fee does not match the current fee.')
+    return new Error(
+      'The curation fee has changed — please reload the page. If this persists, Teia needs to update the app.'
+    )
   }
   if (raw.includes('CUR_PAUSED')) {
     return new Error('Curations are temporarily paused by governance.')
   }
   if (raw.includes('CUR_EMPTY_CID')) {
     return new Error('A title is required.')
+  }
+  if (raw.includes('CUR_TEZ_TRANSFER')) {
+    return new Error('This action must not include a tez amount.')
   }
   return e
 }
@@ -106,7 +117,11 @@ export async function createCuration(input: CurationInput) {
   try {
     const address = useUserStore.getState().address ?? ''
     const { cid, doc } = await buildAndUpload({ ...input, owner: address })
-    step('Create Curation', 'Waiting for wallet confirmation', false)
+    step(
+      'Create Curation',
+      `Waiting for wallet confirmation (${feeLabel(CURATION_CREATE_FEE)} fee)`,
+      false
+    )
     const contract = await Tezos.wallet.at(CURATIONS_CONTRACT)
     const op = await contract.methodsObject
       .create_curation(cid)
@@ -123,21 +138,20 @@ export async function createCuration(input: CurationInput) {
   }
 }
 
-export async function updateCuration(
-  curationId: number,
-  input: CurationInput,
-  { asModerator = false }: { asModerator?: boolean } = {}
-) {
+export async function updateCuration(curationId: number, input: CurationInput) {
   const { step, show, showError } = useModalStore.getState()
   step('Update Curation', 'Uploading to IPFS', true)
   try {
-    const amount = asModerator ? 0 : CURATION_EDIT_FEE
     const { cid, doc } = await buildAndUpload(input)
-    step('Update Curation', 'Waiting for wallet confirmation', false)
+    step(
+      'Update Curation',
+      `Waiting for wallet confirmation (${feeLabel(CURATION_EDIT_FEE)} fee)`,
+      false
+    )
     const contract = await Tezos.wallet.at(CURATIONS_CONTRACT)
     const op = await contract.methodsObject
       .update_curation({ curation_id: curationId, cid })
-      .send({ amount, mutez: true })
+      .send({ amount: CURATION_EDIT_FEE, mutez: true })
     step('Update Curation', 'Awaiting confirmation...')
     await op.confirmation()
     invalidateAfterWrite(cid, doc, input.owner, curationId)
@@ -181,31 +195,75 @@ export async function setCurationHidden({
   }
 }
 
-export async function transferCurationOwnership({
+/** Moderators / multisig users only. No fee. */
+export async function setCurationModerated({
   curationId,
-  newOwner,
+  moderated,
 }: {
   curationId: number
-  newOwner: string
+  moderated: boolean
 }) {
   const { step, show, showError } = useModalStore.getState()
-  step('Transfer Curation', 'Waiting for wallet', true)
+  const title = moderated ? 'Moderate Curation' : 'Unmoderate Curation'
+  step(title, 'Waiting for wallet', true)
   try {
     const contract = await Tezos.wallet.at(CURATIONS_CONTRACT)
     const op = await contract.methodsObject
-      .transfer_curation_ownership({
-        curation_id: curationId,
-        new_owner: newOwner,
-      })
+      .set_curation_moderated({ curation_id: curationId, moderated })
       .send()
-    step('Transfer Curation', 'Awaiting confirmation...')
+    step(title, 'Awaiting confirmation...')
     await op.confirmation()
     mutate(['curations:one', curationId])
-    show('Transfer Curation', 'Ownership transferred')
+    mutate('curations:page:desc:0')
+    mutate('curations:page:asc:0')
+    mutate(['curations:all', 'desc'])
+    mutate(['curations:all', 'asc'])
+    mutate('curations:admin')
+    show(title, moderated ? 'Curation moderated' : 'Curation restored')
     return op.opHash
   } catch (e) {
     const friendly = friendlyError(e)
-    showError('Transfer Curation', friendly)
+    showError(title, friendly)
+    throw friendly
+  }
+}
+
+/**
+ * Used for the migration, will be removed before merging to main.
+ */
+export async function migrateCurations(cids: string[]) {
+  const { step, show, showError } = useModalStore.getState()
+  const title = 'Migrate Curations'
+  const total = CURATION_CREATE_FEE * cids.length
+  step(title, `Waiting for wallet confirmation (${feeLabel(total)} total)`, true)
+  try {
+    const address = useUserStore.getState().address ?? ''
+    const contract = await Tezos.wallet.at(CURATIONS_CONTRACT)
+    const op = await Tezos.wallet
+      .batch(
+        cids.map((cid) => ({
+          kind: OpKind.TRANSACTION as const,
+          ...contract.methodsObject
+            .create_curation(cid)
+            .toTransferParams({ amount: CURATION_CREATE_FEE, mutez: true }),
+        }))
+      )
+      .send()
+    step(title, 'Awaiting confirmation...')
+    await op.confirmation()
+    mutate('curations:page:desc:0')
+    mutate('curations:page:asc:0')
+    mutate(['curations:owner', address, true])
+    mutate(['curations:owner', address, false])
+    mutate(['curations:v3-migration', address])
+    show(
+      title,
+      `${cids.length} curation${cids.length === 1 ? '' : 's'} migrated`
+    )
+    return op.opHash
+  } catch (e) {
+    const friendly = friendlyError(e)
+    showError(title, friendly)
     throw friendly
   }
 }

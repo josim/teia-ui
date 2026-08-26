@@ -14,6 +14,7 @@ import {
   useCurationRoles,
   tokenThumb,
   setCurationHidden,
+  setCurationModerated,
 } from '@data/curations'
 import { useUserProfiles } from '@data/roles'
 import { useUserStore } from '@context/userStore'
@@ -74,13 +75,27 @@ export default function CurationDetail() {
     )
   }
 
-  const canEdit = address === curation.owner || roles?.canModerate
+  const isOwner = address === curation.owner
+  const canModerate = Boolean(roles?.canModerate)
+  const canView = isOwner || canModerate
 
-  if (curation.hidden && !canEdit) {
+  if (curation.hidden && !canView) {
     return (
       <Page title="Curation">
         <Container>
           <p className={styles.empty}>This curation has been hidden.</p>
+        </Container>
+      </Page>
+    )
+  }
+
+  if (curation.moderated && !canView) {
+    return (
+      <Page title="Curation">
+        <Container>
+          <p className={styles.empty}>
+            This curation has been moderated by Teia.
+          </p>
         </Container>
       </Page>
     )
@@ -122,14 +137,27 @@ export default function CurationDetail() {
               ) : null}
               <h1>{title}</h1>
             </div>
-            {(hasMusic || canEdit) && (
+            {(hasMusic || isOwner || canModerate) && (
               <div className={styles.detail_actions}>
                 {hasMusic && (
                   <Button shadow_box onClick={openPlayer}>
                     ▶ Listen
                   </Button>
                 )}
-                {canEdit && (
+                {canModerate && (
+                  <Button
+                    shadow_box
+                    onClick={() =>
+                      setCurationModerated({
+                        curationId: curation.id,
+                        moderated: !curation.moderated,
+                      })
+                    }
+                  >
+                    {curation.moderated ? 'Unmoderate' : 'Moderate'}
+                  </Button>
+                )}
+                {isOwner && (
                   <>
                     <Button
                       shadow_box
@@ -153,6 +181,13 @@ export default function CurationDetail() {
               </div>
             )}
           </div>
+
+          {curation.moderated && isOwner && (
+            <p className={styles.notice}>
+              Moderated by Teia — this curation is not publicly listed. See the{' '}
+              <Link to={PATH.CODE_OF_CONDUCT}>code of conduct</Link>.
+            </p>
+          )}
 
           {content?.description && (
             <p className={styles.detail_desc}>{content.description}</p>
@@ -195,20 +230,6 @@ export default function CurationDetail() {
             </div>
           )}
 
-          {content?.tags?.length > 0 && (
-            <div className={styles.chips}>
-              {content.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  to={`${PATH.TAGS}/${tag}`}
-                  className={styles.chip}
-                >
-                  #{tag}
-                </Link>
-              ))}
-            </div>
-          )}
-
           <div className={styles.detail_meta}>
             <Link
               className={styles.owner_link}
@@ -229,6 +250,7 @@ export default function CurationDetail() {
               {tokenCount} token{tokenCount === 1 ? '' : 's'}
             </span>
             {curation.hidden && <span>hidden</span>}
+            {curation.moderated && <span>moderated</span>}
           </div>
         </div>
 

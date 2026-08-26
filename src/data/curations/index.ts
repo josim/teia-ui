@@ -6,7 +6,8 @@ export {
   createCuration,
   updateCuration,
   setCurationHidden,
-  transferCurationOwnership,
+  setCurationModerated,
+  migrateCurations,
 } from './actions'
 export type { CurationInput } from './actions'
 export {
@@ -25,5 +26,7 @@ export {
   fetchAllCurations,
   fetchCuration,
   fetchCurationsByOwner,
+  fetchCurationsAdmin,
+  fetchV1CurationsForMigration,
 } from './api'
 export type { CurationOrder } from './api'

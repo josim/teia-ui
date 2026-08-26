@@ -39,6 +39,7 @@ import {
   CurationDetail,
   CurationEditor,
   CurationPlayer,
+  CurationsMigrate,
 } from '@pages/curations'
 import { TeiaPolls, PollDisplay } from '@pages/polls'
 import { Polls, CreatePolls, Discourse } from '@pages/polls/tabs'
@@ -271,6 +272,7 @@ const router = createBrowserRouter(
         </Route>
         <Route path="curations" element={<CurationsHome />} />
         <Route path="curations/create" element={<CurationEditor />} />
+        <Route path="curations/migrate" element={<CurationsMigrate />} />
         <Route path="curations/:id" element={<CurationDetail />} />
         <Route path="curations/:id/edit" element={<CurationEditor />} />
         <Route path="publicchannels" element={<ChannelList />} />

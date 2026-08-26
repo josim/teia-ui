@@ -6,6 +6,7 @@ import { ModeratorManagement } from '@components/moderators'
 import CommentsAdmin from './CommentsAdmin'
 import ChannelsAdmin from './ChannelsAdmin'
 import CalendarAdmin from './CalendarAdmin'
+import CurationsAdmin from './CurationsAdmin'
 import styles from '@style'
 
 const TABS = [
@@ -13,6 +14,7 @@ const TABS = [
   { key: 'poll', label: 'Poll comments' },
   { key: 'token', label: 'Token comments' },
   { key: 'calendar', label: 'Calendar' },
+  { key: 'curations', label: 'Curations' },
   { key: 'moderators', label: 'Moderators' },
 ]
 
@@ -52,6 +54,7 @@ export default function ModerationConsole() {
           {tab === 'poll' && <CommentsAdmin kind="poll" />}
           {tab === 'token' && <CommentsAdmin kind="token" />}
           {tab === 'calendar' && <CalendarAdmin />}
+          {tab === 'curations' && <CurationsAdmin />}
           {tab === 'moderators' && (
             <ModeratorManagement
               contract={MODERATOR_CONTRACT}

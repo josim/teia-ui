@@ -59,6 +59,9 @@ export default function CurationCard({ curation }) {
           {curation.hidden && (
             <span className={styles.hidden_badge}>hidden</span>
           )}
+          {curation.moderated && (
+            <span className={styles.hidden_badge}>moderated</span>
+          )}
         </h3>
         <div className={styles.card_meta}>
           {tokenCount} token{tokenCount === 1 ? '' : 's'}

@@ -6,13 +6,15 @@ import useSWRInfinite from 'swr/infinite'
 import {
   fetchAllCurations,
   fetchCuration,
+  fetchCurationsAdmin,
   fetchCurationsByOwner,
   fetchCurationsPage,
+  fetchV1CurationsForMigration,
 } from './api'
 import type { CurationOrder } from './api'
 import { fetchCurationContent } from './ipfs'
 import { useGateRoles, useUserProfiles } from '@data/roles'
-import type { Curation, CurationContent, CurationUserRoles } from './types'
+import type { Curation, CurationContent, CurationUserRoles, V1Curation } from './types'
 
 export const CURATIONS_PAGE_SIZE = 24
 
@@ -70,6 +72,33 @@ export function useCuration(id: number | undefined) {
   }
 }
 
+/** Moderation console list (latest, including hidden + moderated). */
+export function useCurationsAdmin() {
+  const { data, error, mutate } = useSWR<Curation[]>(
+    'curations:admin',
+    fetchCurationsAdmin,
+    { revalidateOnFocus: false }
+  )
+  return { curations: data ?? [], error, isLoading: !data && !error, mutate }
+}
+
+/** The synced wallet's v1 curations + which ones already exist on v2. */
+export function useV1Migration(address: string | undefined) {
+  const { data, error, mutate } = useSWR<V1Curation[]>(
+    address ? ['curations:v3-migration', address] : null,
+    () => fetchV1CurationsForMigration(address as string),
+    { revalidateOnFocus: false }
+  )
+  const curations = data ?? []
+  return {
+    curations,
+    pending: curations.filter((c) => c.migratedTo == null),
+    error,
+    isLoading: address ? !data && !error : false,
+    mutate,
+  }
+}
+
 /** Curations owned by `address` */
 export function useCurationsByOwner(
   address: string | undefined,
@@ -100,7 +129,7 @@ export function useCurationContent(cid: string | undefined) {
   )
 }
 
-/** Current user's curation capabilities (moderator / multisig / token holder). */
+/** Current user's curation capabilities (moderator / multisig). */
 export function useCurationRoles(address: string | undefined): {
   data?: CurationUserRoles
 } {
@@ -110,7 +139,7 @@ export function useCurationRoles(address: string | undefined): {
       isModerator: data.isModerator,
       isMultisig: data.isMultisig,
       canModerate: data.canModerate,
-      canCreate: data.isTokenHolder,
+      canCreate: Boolean(address),
     },
   }
 }

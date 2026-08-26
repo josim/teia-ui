@@ -27,11 +27,15 @@ export default function CurationPlayer() {
     return <PlayerShell tracks={[]} title={title} isLoading emptyMessage="" />
   }
 
-  if (!curation || curation.hidden) {
+  if (!curation || curation.hidden || curation.moderated) {
     return (
       <div className={styles.player}>
         <p className={styles.empty}>
-          {curation ? 'This curation has been hidden.' : 'Curation not found.'}
+          {!curation
+            ? 'Curation not found.'
+            : curation.moderated
+            ? 'This curation has been moderated by Teia.'
+            : 'This curation has been hidden.'}
         </p>
       </div>
     )

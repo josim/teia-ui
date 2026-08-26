@@ -4,7 +4,7 @@ import { Page, Container } from '@atoms/layout'
 import { Button } from '@atoms/button'
 import { Input } from '@atoms/input'
 import { Loading } from '@atoms/loading'
-import { PATH } from '@constants'
+import { PATH, CURATION_CREATE_FEE, CURATION_EDIT_FEE } from '@constants'
 import {
   useCuration,
   useCurationContent,
@@ -374,7 +374,10 @@ export default function CurationEditor() {
   }
 
   const isOwner = isEdit && address === curation?.owner
-  const canEdit = isEdit ? isOwner || roles?.canModerate : roles?.canCreate
+  const canEdit = isEdit ? isOwner : roles?.canCreate
+  const platformFee = mutezToTez(
+    isEdit ? CURATION_EDIT_FEE : CURATION_CREATE_FEE
+  )
 
   const onSubmit = async () => {
     if (!title.trim() || submitting) return
@@ -415,7 +418,7 @@ export default function CurationEditor() {
       }
 
       if (isEdit) {
-        await updateCuration(curationId, input, { asModerator: !isOwner })
+        await updateCuration(curationId, input)
         navigate(`${PATH.CURATIONS}/${curationId}`)
       } else {
         await createCuration(input)
@@ -454,8 +457,8 @@ export default function CurationEditor() {
         <Container>
           <p className={styles.empty}>
             {isEdit
-              ? 'Only the owner or a moderator can edit this curation.'
-              : 'You must hold Teia (TEIA) tokens to create a curation.'}
+              ? 'Only the owner can edit this curation.'
+              : 'Sync your wallet to create a curation.'}
           </p>
         </Container>
       </Page>
@@ -780,6 +783,11 @@ export default function CurationEditor() {
             </p>
           </div>
 
+          <p className={styles.card_meta}>
+            {isEdit
+              ? `Saving changes costs ${platformFee} ꜩ (charged on every edit).`
+              : `Creating a curation costs ${platformFee} ꜩ.`}
+          </p>
           <div className={styles.header}>
             <Button
               shadow_box

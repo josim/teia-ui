@@ -22,6 +22,7 @@ export const PATH = {
   POLL: '/poll',
   WIKI: '/wiki',
   CURATIONS: '/curations',
+  CODE_OF_CONDUCT: '/codeofconduct',
   SYNC: '/sync',
   MINT: '/mint',
   OBJKT: '/objkt',
@@ -192,9 +193,11 @@ export const WIKI_CONTRACT = 'KT1UW3BnYemVjA4HggNZeR4wq2eKbVvpq15Y'
 export const WIKI_INDEX_PAGE_ID: number | null = null
 
 // --- Curations ---
-export const CURATIONS_CONTRACT = 'KT1NdDcfE1mzAc6nYgV5psGcK3L86FqogKVq'
-export const CURATION_CREATE_FEE = 0
-export const CURATION_EDIT_FEE = 0
+export const CURATIONS_CONTRACT = 'KT18mrZB2k5PbWsY55dvLJatqgT4evVehLPC'
+// Old Contract used for the migration.
+export const CURATIONS_OLD_CONTRACT = 'KT1NdDcfE1mzAc6nYgV5psGcK3L86FqogKVq'
+export const CURATION_CREATE_FEE = 100_000
+export const CURATION_EDIT_FEE = 50_000
 
 export const QUIPUSWAP_TEIA_URL = `https://quipuswap.com/swap/tez-${DAO_TOKEN_CONTRACT}_0`
 
