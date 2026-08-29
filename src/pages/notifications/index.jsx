@@ -18,6 +18,7 @@ import {
   useMyInbox,
   useChannelLatestMessageIds,
 } from '@data/messaging/channels'
+import { msgIpfsToUrl } from '@data/messaging/ipfs'
 import { useMyPollNotifications } from '@data/messaging/poll-comments'
 import { useMyTokenNotifications } from '@data/messaging/token-comments'
 import { useUsers, useObjktsByIds, useStorage, usePolls } from '@data/swr'
@@ -313,9 +314,7 @@ export default function NotificationsCenter() {
                     {item.unread && <span className={styles.unreadDot} />}
                     {item.channelImage ? (
                       <img
-                        src={HashToURL(item.channelImage, 'CDN', {
-                          size: 'small',
-                        })}
+                        src={msgIpfsToUrl(item.channelImage)}
                         alt=""
                         className={styles.thumb}
                       />
