@@ -130,6 +130,7 @@ export default function Display() {
     { title: 'Channels', to: 'channels' },
     { title: 'Comments', to: 'comments' },
     { title: 'Copyrights', to: 'copyrights' },
+    { title: 'Curations', to: 'curations' },
   ]
 
   return (
