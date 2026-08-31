@@ -27,8 +27,8 @@ const FEED_FILTERS = ACTIVITY_FILTERS.filter(
 )
 
 const VIEWS = [
-  { key: 'trades', label: 'Trades' },
   { key: 'social', label: 'Social' },
+  { key: 'trades', label: 'Trades' },
   { key: 'text', label: 'Text' },
   { key: 'calendar', label: 'Calendar' },
   { key: 'copyright', label: 'Copyright' },

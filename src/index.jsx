@@ -302,7 +302,7 @@ const router = createBrowserRouter(
           }
         />
         <Route path="activity" element={<TeiaActivity />}>
-          <Route index element={<Navigate to="trades" replace />} />
+          <Route index element={<Navigate to="social" replace />} />
           <Route path="trades" element={<TradesFeed />} />
           <Route path="social" element={<SocialFeed />} />
           <Route path="text" element={<TextActivityFeed />} />
