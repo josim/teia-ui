@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Loading } from '@atoms/loading'
 import { Button } from '@atoms/button'
@@ -17,6 +17,7 @@ import {
 import {
   ActivityList,
   ActivityFilters,
+  ActivityControls,
   SocialActivityRow,
 } from '@components/activity'
 import activityStyles from '@components/activity/index.module.scss'
@@ -40,6 +41,7 @@ export function TradesFeed() {
   const { walletBlockMap } = useSettings()
   const type = useActivityFilter()
   const market = useActivityFilter()
+  const [sort, setSort] = useState('newest')
   const { matches: matchesType } = type
   const { matches: matchesMarket } = market
   const {
@@ -49,7 +51,7 @@ export function TradesFeed() {
     isLoadingMore,
     isReachingEnd,
     loadMore,
-  } = useGlobalActivity(type.active)
+  } = useGlobalActivity(type.active, sort)
 
   const rows = useMemo(
     () =>
@@ -91,16 +93,18 @@ export function TradesFeed() {
 
   return (
     <>
-      <ActivityFilters
-        active={type.active}
-        onToggle={type.toggle}
-        filters={FEED_FILTERS}
-      />
-      <ActivityFilters
-        active={market.active}
-        onToggle={market.toggle}
-        filters={MARKET_FILTERS}
-      />
+      <ActivityControls sort={sort} onSortChange={setSort}>
+        <ActivityFilters
+          active={type.active}
+          onToggle={type.toggle}
+          filters={FEED_FILTERS}
+        />
+        <ActivityFilters
+          active={market.active}
+          onToggle={market.toggle}
+          filters={MARKET_FILTERS}
+        />
+      </ActivityControls>
 
       <ActivityList
         rows={rows}
@@ -123,6 +127,7 @@ export function TradesFeed() {
  */
 export function SocialFeed() {
   const kind = useActivityFilter()
+  const [sort, setSort] = useState('newest')
   const { matches } = kind
   const {
     items,
@@ -131,7 +136,7 @@ export function SocialFeed() {
     isLoadingMore,
     isReachingEnd,
     loadMore,
-  } = useSocialActivity()
+  } = useSocialActivity(sort)
 
   const senders = useMemo(
     () => [...new Set(items.map((i) => i.sender))],
@@ -158,11 +163,13 @@ export function SocialFeed() {
 
   return (
     <>
-      <ActivityFilters
-        active={kind.active}
-        onToggle={kind.toggle}
-        filters={SOCIAL_FILTERS}
-      />
+      <ActivityControls sort={sort} onSortChange={setSort}>
+        <ActivityFilters
+          active={kind.active}
+          onToggle={kind.toggle}
+          filters={SOCIAL_FILTERS}
+        />
+      </ActivityControls>
 
       {rows.length === 0 ? (
         <div className={styles.empty}>

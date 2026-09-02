@@ -1225,7 +1225,12 @@ export function useUserActivity(address, activeTypes = []) {
 
 const TEXT_ACTIVITY_QUERY = gql`
   ${ActivityEventFieldsFragment}
-  query TextActivity($conds: [events_bool_exp!]!, $limit: Int!, $offset: Int!) {
+  query TextActivity(
+    $conds: [events_bool_exp!]!
+    $limit: Int!
+    $offset: Int!
+    $order: order_by!
+  ) {
     events(
       where: {
         token: {
@@ -1235,7 +1240,7 @@ const TEXT_ACTIVITY_QUERY = gql`
         fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
         _or: $conds
       }
-      order_by: [{ level: desc }, { opid: desc }]
+      order_by: [{ level: $order }, { opid: $order }]
       limit: $limit
       offset: $offset
     ) {
@@ -1245,26 +1250,28 @@ const TEXT_ACTIVITY_QUERY = gql`
 `
 
 //Platform-wide activity for text posts
-export function useTextActivity(activeTypes = []) {
+export function useTextActivity(activeTypes = [], sort = 'newest') {
   const filterKey = activeTypes.length
     ? [...activeTypes].sort().join(',')
     : 'all'
   const conds = globalActivityConds(activeTypes)
+  const order = sort === 'oldest' ? 'asc' : 'desc'
 
   const getKey = (pageIndex, previousPageData) => {
     if (previousPageData && previousPageData.length === 0) return null
-    return ['text-activity', filterKey, pageIndex]
+    return ['text-activity', filterKey, sort, pageIndex]
   }
 
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     getKey,
     // SWR v1 spreads array-key parts as separate fetcher args.
-    async (_ns, _filters, pageIndex) => {
+    async (_ns, _filters, _sort, pageIndex) => {
       const res = await request(
         import.meta.env.VITE_TEIA_GRAPHQL_API,
         TEXT_ACTIVITY_QUERY,
         {
           conds,
+          order,
           limit: ACTIVITY_PAGE_SIZE,
           offset: pageIndex * ACTIVITY_PAGE_SIZE,
         }
@@ -1293,7 +1300,12 @@ export function useTextActivity(activeTypes = []) {
 
 const GLOBAL_ACTIVITY_QUERY = gql`
   ${ActivityEventFieldsFragment}
-  query GlobalActivity($conds: [events_bool_exp!]!, $limit: Int!, $offset: Int!) {
+  query GlobalActivity(
+    $conds: [events_bool_exp!]!
+    $limit: Int!
+    $offset: Int!
+    $order: order_by!
+  ) {
     events(
       # One condition per event kind (see globalActivityConds): the active
       # filter chips are pushed into the query so pages stay full.
@@ -1302,7 +1314,7 @@ const GLOBAL_ACTIVITY_QUERY = gql`
         fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
         _or: $conds
       }
-      order_by: [{ level: desc }, { opid: desc }]
+      order_by: [{ level: $order }, { opid: $order }]
       limit: $limit
       offset: $offset
     ) {
@@ -1312,29 +1324,31 @@ const GLOBAL_ACTIVITY_QUERY = gql`
 `
 
 /**
- * Platform-wide Teia/HEN activity feed (sales, listings, mints), newest first,
- * with "load more" paging. Not scoped to any address.
+ * Platform-wide Teia/HEN activity feed (sales, listings, mints), with
+ * "load more" paging. Not scoped to any address.
  */
-export function useGlobalActivity(activeTypes = []) {
+export function useGlobalActivity(activeTypes = [], sort = 'newest') {
   const filterKey = activeTypes.length
     ? [...activeTypes].sort().join(',')
     : 'all'
   const conds = globalActivityConds(activeTypes)
+  const order = sort === 'oldest' ? 'asc' : 'desc'
 
   const getKey = (pageIndex, previousPageData) => {
     if (previousPageData && previousPageData.length === 0) return null
-    return ['global-activity', filterKey, pageIndex]
+    return ['global-activity', filterKey, sort, pageIndex]
   }
 
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     getKey,
     // SWR v1 spreads array-key parts as separate fetcher args.
-    async (_ns, _filters, pageIndex) => {
+    async (_ns, _filters, _sort, pageIndex) => {
       const res = await request(
         import.meta.env.VITE_TEIA_GRAPHQL_API,
         GLOBAL_ACTIVITY_QUERY,
         {
           conds,
+          order,
           limit: ACTIVITY_PAGE_SIZE,
           offset: pageIndex * ACTIVITY_PAGE_SIZE,
         }

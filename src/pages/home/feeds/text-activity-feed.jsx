@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Loading } from '@atoms/loading'
 import { Button } from '@atoms/button'
 import useSettings from '@hooks/use-settings'
@@ -15,6 +15,7 @@ import {
 import {
   ActivityList,
   ActivityFilters,
+  ActivityControls,
   SocialActivityRow,
 } from '@components/activity'
 import activityStyles from '@components/activity/index.module.scss'
@@ -26,7 +27,7 @@ const TEXT_FILTERS = ACTIVITY_FILTERS.filter((f) =>
 )
 
 /** Comments posted on text tokens */
-function TextComments() {
+function TextComments({ sort }) {
   const {
     items,
     error,
@@ -34,7 +35,7 @@ function TextComments() {
     isLoadingMore,
     isReachingEnd,
     loadMore,
-  } = useTextCommentActivity()
+  } = useTextCommentActivity(sort)
 
   const senders = useMemo(
     () => [...new Set(items.map((i) => i.sender))],
@@ -108,6 +109,7 @@ export function TextActivityFeed() {
   const { walletBlockMap } = useSettings()
   const type = useActivityFilter()
   const market = useActivityFilter()
+  const [sort, setSort] = useState('newest')
   const { matches: matchesType } = type
   const { matches: matchesMarket } = market
   const {
@@ -117,7 +119,7 @@ export function TextActivityFeed() {
     isLoadingMore,
     isReachingEnd,
     loadMore,
-  } = useTextActivity(type.active)
+  } = useTextActivity(type.active, sort)
 
   const rows = useMemo(
     () =>
@@ -159,16 +161,18 @@ export function TextActivityFeed() {
 
   return (
     <>
-      <ActivityFilters
-        active={type.active}
-        onToggle={type.toggle}
-        filters={TEXT_FILTERS}
-      />
-      <ActivityFilters
-        active={market.active}
-        onToggle={market.toggle}
-        filters={MARKET_FILTERS}
-      />
+      <ActivityControls sort={sort} onSortChange={setSort}>
+        <ActivityFilters
+          active={type.active}
+          onToggle={type.toggle}
+          filters={TEXT_FILTERS}
+        />
+        <ActivityFilters
+          active={market.active}
+          onToggle={market.toggle}
+          filters={MARKET_FILTERS}
+        />
+      </ActivityControls>
 
       <ActivityList
         rows={rows}
@@ -183,7 +187,7 @@ export function TextActivityFeed() {
       />
 
       <h2 className={styles.section_heading}>Comments</h2>
-      <TextComments />
+      <TextComments sort={sort} />
     </>
   )
 }

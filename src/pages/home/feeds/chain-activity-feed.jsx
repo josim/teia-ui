@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { Loading } from '@atoms/loading'
 import { Button } from '@atoms/button'
@@ -12,7 +12,11 @@ import {
 import { useUserProfiles } from '@data/roles'
 import { useWiki } from '@data/wiki'
 import { fetchEvents, fetchEventContent } from '@data/calendar-chain'
-import { ActivityFilters, ActionRow } from '@components/activity'
+import {
+  ActivityFilters,
+  ActivityControls,
+  ActionRow,
+} from '@components/activity'
 import activityStyles from '@components/activity/index.module.scss'
 import styles from './teia-activity-feed.module.scss'
 
@@ -65,6 +69,7 @@ function present(item, config, targetOf) {
 
 function ChainFeed({ config, targetOf, loadingMessage }) {
   const action = useActivityFilter()
+  const [sort, setSort] = useState('newest')
   const {
     items,
     error,
@@ -72,7 +77,7 @@ function ChainFeed({ config, targetOf, loadingMessage }) {
     isLoadingMore,
     isReachingEnd,
     loadMore,
-  } = useChainActivity(config, action.active)
+  } = useChainActivity(config, action.active, sort)
 
   const actors = useMemo(
     () => [...new Set(items.map((i) => i.actor).filter(Boolean))],
@@ -94,11 +99,13 @@ function ChainFeed({ config, targetOf, loadingMessage }) {
 
   return (
     <>
-      <ActivityFilters
-        active={action.active}
-        onToggle={action.toggle}
-        filters={CHAIN_ACTIVITY_FILTERS}
-      />
+      <ActivityControls sort={sort} onSortChange={setSort}>
+        <ActivityFilters
+          active={action.active}
+          onToggle={action.toggle}
+          filters={CHAIN_ACTIVITY_FILTERS}
+        />
+      </ActivityControls>
 
       {items.length === 0 ? (
         <div className={styles.empty}>
@@ -202,6 +209,7 @@ export function WikiActivityFeed() {
 }
 
 export function CopyrightActivityFeed() {
+  const [sort, setSort] = useState('newest')
   const {
     items,
     error,
@@ -209,7 +217,7 @@ export function CopyrightActivityFeed() {
     isLoadingMore,
     isReachingEnd,
     loadMore,
-  } = useCopyrightActivity()
+  } = useCopyrightActivity(sort)
 
   const actors = useMemo(
     () => [...new Set(items.map((i) => i.actor).filter(Boolean))],
@@ -239,6 +247,9 @@ export function CopyrightActivityFeed() {
 
   return (
     <>
+      {/* No filter chips on this feed — the sort control stands alone. */}
+      <ActivityControls sort={sort} onSortChange={setSort} />
+
       <div className={activityStyles.social_scroll}>
         <div className={activityStyles.action_head}>
           <span>Action</span>

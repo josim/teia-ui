@@ -3,6 +3,7 @@
 
 import useSWRInfinite from 'swr/infinite'
 import { COPYRIGHT_CONTRACT } from '@constants'
+import type { ActivitySort } from '@data/messaging/useSocialActivity'
 
 const TZKT_API = import.meta.env.VITE_TZKT_API
 const PAGE_SIZE = 50
@@ -114,12 +115,13 @@ async function fetchTxHashes(txIds: number[]): Promise<Map<number, string>> {
 async function fetchChainActivityPage(
   config: ChainActivityConfig,
   tags: string[],
-  offset: number
+  offset: number,
+  sort: 'asc' | 'desc' = 'desc'
 ): Promise<ChainActivityItem[]> {
   const url = new URL(`${TZKT_API}/v1/contracts/events`)
   url.searchParams.set('contract', config.contract)
   url.searchParams.set('tag.in', tags.join(','))
-  url.searchParams.set('sort.desc', 'id')
+  url.searchParams.set(`sort.${sort}`, 'id')
   url.searchParams.set('limit', String(PAGE_SIZE))
   if (offset > 0) url.searchParams.set('offset', String(offset))
 
@@ -152,7 +154,8 @@ async function fetchChainActivityPage(
  */
 export function useChainActivity(
   config: ChainActivityConfig,
-  activeActions: string[] = []
+  activeActions: string[] = [],
+  sort: ActivitySort = 'newest'
 ) {
   const tagMap = actionTags(config.itemPrefix)
   const actions = (
@@ -162,20 +165,26 @@ export function useChainActivity(
   const filterKey = activeActions.length
     ? [...activeActions].sort().join(',')
     : 'all'
+  const dir = sort === 'oldest' ? 'asc' : 'desc'
 
   const getKey = (
     pageIndex: number,
     previousPageData: ChainActivityItem[] | null
   ) => {
     if (previousPageData && previousPageData.length === 0) return null
-    return ['chain-activity', config.ns, filterKey, pageIndex]
+    return ['chain-activity', config.ns, filterKey, sort, pageIndex]
   }
 
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     getKey,
     // SWR v1 spreads array-key parts as separate fetcher args.
-    (_ns: string, _cns: string, _filters: string, pageIndex: number) =>
-      fetchChainActivityPage(config, tags, pageIndex * PAGE_SIZE),
+    (
+      _ns: string,
+      _cns: string,
+      _filters: string,
+      _sort: ActivitySort,
+      pageIndex: number
+    ) => fetchChainActivityPage(config, tags, pageIndex * PAGE_SIZE, dir),
     { revalidateFirstPage: false, revalidateOnFocus: false }
   )
 
@@ -232,14 +241,15 @@ function getCopyrightBigmapId(): Promise<number> {
 }
 
 async function fetchCopyrightPage(
-  offset: number
+  offset: number,
+  sort: 'asc' | 'desc' = 'desc'
 ): Promise<CopyrightActivityItem[]> {
   const bigmap = await getCopyrightBigmapId()
 
   const url = new URL(`${TZKT_API}/v1/bigmaps/updates`)
   url.searchParams.set('bigmap', String(bigmap))
   url.searchParams.set('action', 'add_key')
-  url.searchParams.set('sort.desc', 'id')
+  url.searchParams.set(`sort.${sort}`, 'id')
   url.searchParams.set('limit', String(PAGE_SIZE))
   if (offset > 0) url.searchParams.set('offset', String(offset))
 
@@ -262,21 +272,23 @@ async function fetchCopyrightPage(
   }))
 }
 
-/** New copyright agreements, newest first, with "load more" paging. */
-export function useCopyrightActivity() {
+/** New copyright agreements, with "load more" paging. */
+export function useCopyrightActivity(sort: ActivitySort = 'newest') {
+  const dir = sort === 'oldest' ? 'asc' : 'desc'
+
   const getKey = (
     pageIndex: number,
     previousPageData: CopyrightActivityItem[] | null
   ) => {
     if (previousPageData && previousPageData.length === 0) return null
-    return ['copyright-activity', pageIndex]
+    return ['copyright-activity', sort, pageIndex]
   }
 
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     getKey,
     // SWR v1 spreads array-key parts as separate fetcher args.
-    (_ns: string, pageIndex: number) =>
-      fetchCopyrightPage(pageIndex * PAGE_SIZE),
+    (_ns: string, _sort: ActivitySort, pageIndex: number) =>
+      fetchCopyrightPage(pageIndex * PAGE_SIZE, dir),
     { revalidateFirstPage: false, revalidateOnFocus: false }
   )
 

@@ -4,7 +4,7 @@ import useSWRInfinite from 'swr/infinite'
 import { request, gql } from 'graphql-request'
 import { HEN_CONTRACT_FA2 } from '@constants'
 import { fetchRecentCommentsPage, RECENT_LIMIT } from './admin'
-import type { SocialActivityItem } from './useSocialActivity'
+import type { ActivitySort, SocialActivityItem } from './useSocialActivity'
 
 const PAGE_SIZE = RECENT_LIMIT
 
@@ -30,10 +30,14 @@ interface TextCommentsPage {
   items: SocialActivityItem[]
 }
 
-async function fetchTextCommentsPage(offset: number): Promise<TextCommentsPage> {
+async function fetchTextCommentsPage(
+  offset: number,
+  sort: 'asc' | 'desc'
+): Promise<TextCommentsPage> {
   const page = await fetchRecentCommentsPage('token', {
     limit: PAGE_SIZE,
     offset,
+    sort,
   })
 
   const candidates = page.filter(
@@ -70,17 +74,19 @@ async function fetchTextCommentsPage(offset: number): Promise<TextCommentsPage> 
   }
 }
 
-export function useTextCommentActivity() {
+export function useTextCommentActivity(sort: ActivitySort = 'newest') {
+  const dir = sort === 'oldest' ? 'asc' : 'desc'
+
   const getKey = (pageIndex: number, previous: TextCommentsPage | null) => {
     if (previous && previous.rawCount === 0) return null
-    return ['text-comments', pageIndex]
+    return ['text-comments', sort, pageIndex]
   }
 
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     getKey,
     // SWR v1 spreads array-key parts as separate fetcher args.
-    (_ns: string, pageIndex: number) =>
-      fetchTextCommentsPage(pageIndex * PAGE_SIZE),
+    (_ns: string, _sort: ActivitySort, pageIndex: number) =>
+      fetchTextCommentsPage(pageIndex * PAGE_SIZE, dir),
     { revalidateFirstPage: false, revalidateOnFocus: false }
   )
 
