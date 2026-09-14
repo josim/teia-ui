@@ -4,7 +4,7 @@
       "id": "tan-tan",
       "title": "Tan-Tan",
       "subtitle": "Digital art project",
-      "content": "A digital art project and event website.",
+      "description": "A digital art project and event website.",
       "link": "https://tan-tan.art/",
       "screenshot": "/events/tan-tan.png",
       "bannerColor": "#000000"
@@ -13,7 +13,7 @@
       "id": "malicious-sheep",
       "title": "Malicious Sheep",
       "subtitle": "Digital art project",
-      "content": "A digital art project website.",
+      "description": "A digital art project website.",
       "link": "https://malicioussheep.art/",
       "screenshot": "/events/malicioussheep.png",
       "bannerColor": "#f0f0f0"
@@ -22,7 +22,7 @@
       "id": "byob-mx-teia",
       "title": "BYOB mx TEIA",
       "subtitle": "Digital art exhibition + NFT drop",
-      "content": "Bring Your Own Beamer, organised by Psychofuturist and supported by Teia.",
+      "description": "Bring Your Own Beamer, organised by Psychofuturist and supported by Teia.",
       "link": "https://byob.teia.art/",
       "screenshot": "/events/byob.png",
       "bannerColor": "#f0f0e8"
@@ -31,7 +31,7 @@
       "id": "cind-tezos-2026",
       "title": "Cind Tezos 2026",
       "subtitle": "2026 gallery",
-      "content": "A community event gallery on Tezos.",
+      "description": "A community event gallery on Tezos.",
       "link": "https://cindtezos2026-gallery.teia.art/",
       "screenshot": "/events/cindtezos2026.png",
       "bannerColor": "#081008"
@@ -40,7 +40,7 @@
       "id": "tezos-pride-2026",
       "title": "Tezos Pride 2026",
       "subtitle": "2026 gallery",
-      "content": "Celebrating and supporting the 2SLGBTQ+ community in the Tezos ecosystem.",
+      "description": "Celebrating and supporting the 2SLGBTQ+ community in the Tezos ecosystem.",
       "link": "https://tezospride2026-gallery.teia.art/",
       "screenshot": "/events/tezospride2026.png",
       "bannerColor": "#100818"
@@ -49,7 +49,7 @@
       "id": "voices-of-iran",
       "title": "Voices of Iran",
       "subtitle": "Community gallery",
-      "content": "A gallery for voices and artists from Iran.",
+      "description": "A gallery for voices and artists from Iran.",
       "link": "https://voicesofiran-gallery.teia.art/",
       "screenshot": "/events/voicesofiran.png",
       "bannerColor": "#101008"
@@ -58,7 +58,7 @@
       "id": "art4life",
       "title": "Art4Life",
       "subtitle": "Community gallery",
-      "content": "A Tezos community art gallery.",
+      "description": "A Tezos community art gallery.",
       "link": "https://art4life-gallery.teia.art/",
       "screenshot": "/events/art4life.png",
       "bannerColor": "#202020"
@@ -67,7 +67,7 @@
       "id": "tezcon-2026",
       "title": "TezCon 2026 Gallery",
       "subtitle": "TezCon 2026",
-      "content": "Gallery for the TezCon 2026 event.",
+      "description": "Gallery for the TezCon 2026 event.",
       "link": "https://tezcon2026-gallery.teia.art/",
       "screenshot": "/events/tezcon2026.png",
       "bannerColor": "#e8e0d8"
@@ -76,7 +76,7 @@
       "id": "computational-jewelry",
       "title": "Computational Jewelry",
       "subtitle": "Community gallery",
-      "content": "A gallery exploring computational jewelry and digital art.",
+      "description": "A gallery exploring computational jewelry and digital art.",
       "link": "https://computationaljewelry-gallery.teia.art/",
       "screenshot": "/events/computationaljewelry.png",
       "bannerColor": "#d8b8f8"
@@ -85,7 +85,7 @@
       "id": "cycles",
       "title": "Cycles",
       "subtitle": "Interactive gallery",
-      "content": "An interactive Teia event experience.",
+      "description": "An interactive Teia event experience.",
       "link": "https://cycles.teia.art/",
       "screenshot": "/events/cycles.png",
       "bannerColor": "#080808"
@@ -94,7 +94,7 @@
       "id": "midsummer-party-2026",
       "title": "Midsummer Party 2026",
       "subtitle": "2026 gallery",
-      "content": "Gallery for the Midsummer Party 2026 event.",
+      "description": "Gallery for the Midsummer Party 2026 event.",
       "link": "https://midsummerparty2026-gallery.teia.art/",
       "screenshot": "/events/midsummerparty2026.png",
       "bannerColor": "#080010"
@@ -103,7 +103,7 @@
       "id": "tezos",
       "title": "Tezos",
       "subtitle": "Tezos ecosystem",
-      "content": "The official Tezos website.",
+      "description": "The official Tezos website.",
       "link": "https://tezos.com/",
       "screenshot": "/events/tezos.png",
       "bannerColor": "#202020"
@@ -112,7 +112,7 @@
       "id": "teia",
       "title": "Teia",
       "subtitle": "Community-owned NFT marketplace",
-      "content": "The open, community-owned Tezos NFT marketplace.",
+      "description": "The open, community-owned Tezos NFT marketplace.",
       "link": "https://teia.art/",
       "screenshot": "/events/teia.png",
       "bannerColor": "#101010"
@@ -121,7 +121,7 @@
       "id": "bitcointalk",
       "title": "BitcoinTalk",
       "subtitle": "Crypto community forum",
-      "content": "A long-running discussion forum for the cryptocurrency community.",
+      "description": "A long-running discussion forum for the cryptocurrency community.",
       "link": "https://bitcointalk.org/",
       "screenshot": "/events/bitcointalk.png",
       "bannerColor": "#e0e0e0"
