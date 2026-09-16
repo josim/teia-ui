@@ -168,6 +168,12 @@
   overflow-wrap: anywhere;
 }
 
+.link_warning {
+  color: var(--error-color, crimson);
+  font-size: $font-small;
+  font-weight: normal !important;
+}
+
 .helper,
 .preview_status,
 .preview_error {

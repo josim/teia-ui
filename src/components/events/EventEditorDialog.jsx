@@ -178,8 +178,8 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
           />
         )}
         {draft.linkMode === 'url' ? (
-          <span className={styles.link_preview}>
-            Not all websites will work
+          <span className={styles.link_warning}>
+            Not all websites will work as iframes
           </span>
         ) : (
           validLink && <span className={styles.link_preview}>{validLink}</span>
