@@ -16,7 +16,7 @@
   font-size: var(--font-size-small, 0.85rem);
 }
 
-.controls {
+.toggles {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -201,7 +201,7 @@
   font-size: var(--font-size-small, 0.85rem);
   background: #fff;
   color: #000;
-  transition: height 0.1s linear;
+  transition: height 0.2s ease-out;
 
   span {
     position: relative;
@@ -214,5 +214,5 @@
   top: 0;
   bottom: 0;
   background: #ccc;
-  transition: width 0.1s linear;
+  transition: width 0.15s ease-out;
 }

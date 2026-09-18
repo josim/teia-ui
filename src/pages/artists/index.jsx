@@ -205,7 +205,7 @@ export default function ArtistsPage() {
             Artists by most recent mint, with their latest creations.
           </p>
 
-          <div className={styles.controls}>
+          <div className={styles.toggles}>
             <Checkbox
               checked={showPhotosensitive}
               onCheck={setShowPhotosensitive}
@@ -262,7 +262,10 @@ export default function ArtistsPage() {
               </Button>
             </div>
           )}
-          <div className={styles.hint} style={{ height: pull * HINT_PX }}>
+          <div
+            className={styles.hint}
+            style={{ height: pull > 0 ? HINT_PX : 0 }}
+          >
             <div
               className={styles.hint_progress}
               style={{ width: `${pull * 100}%` }}
