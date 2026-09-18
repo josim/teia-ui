@@ -1368,7 +1368,12 @@ const ARTIST_PREVIEW_MIMES = [
 ]
 
 const ARTISTS_PAGE_QUERY = gql`
-  query ArtistsPage($before: timestamptz!, $exclude: [String!]!, $limit: Int!) {
+  query ArtistsPage(
+    $before: timestamptz!
+    $exclude: [String!]!
+    $limit: Int!
+    $search: String!
+  ) {
     tokens(
       order_by: { minted_at: desc }
       where: {
@@ -1378,7 +1383,7 @@ const ARTISTS_PAGE_QUERY = gql`
         metadata_status: { _eq: "processed" }
         fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
         mime_type: { _in: ${JSON.stringify(ARTIST_PREVIEW_MIMES)} }
-        artist_profile: { name: { _is_null: false } }
+        artist_profile: { name: { _ilike: $search } }
       }
       limit: $limit
     ) {
@@ -1430,12 +1435,12 @@ function buildArtistPreviewsQuery(addresses) {
  * Artists directory page, most recently minting artists first. Walks tokens
  * newest-first (500 per request), collecting the first 50 distinct artists
  * not in `exclude` (artists shown on earlier pages). Returns a `cursor`
- * (minted_at of the last token consumed) for the next page. Typically two
- * GraphQL requests per page.
+ * (minted_at of the last token consumed) for the next page. `search` is an
+ * ilike substring on the artist name. Typically two GraphQL requests per page.
  */
-export function useArtistsPage(before, exclude) {
+export function useArtistsPage(before, exclude, search = '') {
   return useSWR(
-    ['artists-page', before, exclude],
+    ['artists-page', before, exclude, search],
     async () => {
       const artists = []
       const seen = new Set(exclude)
@@ -1446,7 +1451,12 @@ export function useArtistsPage(before, exclude) {
         const { tokens } = await request(
           import.meta.env.VITE_TEIA_GRAPHQL_API,
           ARTISTS_PAGE_QUERY,
-          { before: cursor, exclude, limit: ARTISTS_TOKEN_BATCH }
+          {
+            before: cursor,
+            exclude,
+            limit: ARTISTS_TOKEN_BATCH,
+            search: `%${search}%`,
+          }
         )
         exhausted = tokens.length < ARTISTS_TOKEN_BATCH
         for (const t of tokens) {

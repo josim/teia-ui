@@ -16,9 +16,37 @@
   font-size: var(--font-size-small, 0.85rem);
 }
 
+// Doubled class beats the Input atom's own `.container label input` rules.
+.search.search {
+  width: 100%;
+  max-width: 520px;
+  margin: 0.5rem auto;
+
+  // Input atom always renders a label; placeholder does the job here.
+  label p {
+    display: none;
+  }
+
+  label input {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--text-color);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-color);
+    text-align: center;
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--border-color);
+    }
+  }
+}
+
 .toggles {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
   margin-bottom: 0.5rem;
 }

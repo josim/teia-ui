@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Page, Container } from '@atoms/layout'
 import { Button } from '@atoms/button'
 import { Loading } from '@atoms/loading'
-import { Checkbox } from '@atoms/input'
+import { Checkbox, Input } from '@atoms/input'
 import Identicon from '@atoms/identicons'
 import { HashToURL } from '@utils'
 import { useArtistsPage } from '@data/swr'
@@ -122,7 +122,20 @@ export default function ArtistsPage() {
   // the last entry is the current page. Previous just pops.
   const [history, setHistory] = useState([{ before: null, exclude: [] }])
   const current = history[history.length - 1]
-  const { data, error } = useArtistsPage(current.before, current.exclude)
+  const [search, setSearch] = useState('')
+  const [debounced, setDebounced] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebounced(search.trim())
+      setHistory([{ before: null, exclude: [] }])
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+  const { data, error } = useArtistsPage(
+    current.before,
+    current.exclude,
+    debounced
+  )
   const page = history.length - 1
 
   const [showPhotosensitive, setShowPhotosensitive] = useState(false)
@@ -205,6 +218,14 @@ export default function ArtistsPage() {
             Artists by most recent mint, with their latest creations.
           </p>
 
+          <Input
+            className={styles.search}
+            name="artist-search"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search artists by name"
+            label="Search"
+          />
           <div className={styles.toggles}>
             <Checkbox
               checked={showPhotosensitive}
