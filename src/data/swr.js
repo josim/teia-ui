@@ -1358,9 +1358,9 @@ const ARTISTS_TOKEN_BATCH = 500
 // Hasura rejects null in `_lt`, so the first page starts from the far future.
 const ARTISTS_FIRST_CURSOR = '9999-01-01T00:00:00Z'
 
-// Static images only: animated GIFs come back from imgproxy as multi-MB
-// animated webp, and 150 of them on one page kills the tab.
-const ARTIST_PREVIEW_MIMES = [
+// Only these load as <img> previews. Animated GIFs come back from imgproxy as
+// multi-MB animated webp; other types render as a labelled tile instead.
+export const ARTIST_IMAGE_MIMES = [
   'image/png',
   'image/jpeg',
   'image/jpg',
@@ -1373,6 +1373,7 @@ const ARTISTS_PAGE_QUERY = gql`
     $exclude: [String!]!
     $limit: Int!
     $search: String!
+    $filters: tokens_bool_exp!
   ) {
     tokens(
       order_by: { minted_at: desc }
@@ -1382,8 +1383,8 @@ const ARTISTS_PAGE_QUERY = gql`
         editions: { _gt: 0 }
         metadata_status: { _eq: "processed" }
         fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
-        mime_type: { _in: ${JSON.stringify(ARTIST_PREVIEW_MIMES)} }
         artist_profile: { name: { _ilike: $search } }
+        _and: [$filters]
       }
       limit: $limit
     ) {
@@ -1411,7 +1412,7 @@ function buildArtistPreviewsQuery(addresses) {
           editions: { _gt: 0 }
           metadata_status: { _eq: "processed" }
           fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
-          mime_type: { _in: ${JSON.stringify(ARTIST_PREVIEW_MIMES)} }
+          _and: [$filters]
         }
         order_by: { minted_at: desc }
         limit: ${ARTIST_PREVIEW_COUNT}
@@ -1420,6 +1421,10 @@ function buildArtistPreviewsQuery(addresses) {
         name
         display_uri
         mime_type
+        formats
+        listings(where: { status: { _eq: "active" } }) {
+          seller_address
+        }
         teia_meta {
           preview_uri
           accessibility
@@ -1428,7 +1433,7 @@ function buildArtistPreviewsQuery(addresses) {
       }`
     )
     .join('\n')
-  return `query ArtistPreviews { ${fields} }`
+  return `query ArtistPreviews($filters: tokens_bool_exp!) { ${fields} }`
 }
 
 /**
@@ -1436,11 +1441,12 @@ function buildArtistPreviewsQuery(addresses) {
  * newest-first (500 per request), collecting the first 50 distinct artists
  * not in `exclude` (artists shown on earlier pages). Returns a `cursor`
  * (minted_at of the last token consumed) for the next page. `search` is an
- * ilike substring on the artist name. Typically two GraphQL requests per page.
+ * ilike substring on the artist name; `filters` is a tokens_bool_exp applied
+ * to both the page and preview queries. Typically two GraphQL requests per page.
  */
-export function useArtistsPage(before, exclude, search = '') {
+export function useArtistsPage(before, exclude, search = '', filters = {}) {
   return useSWR(
-    ['artists-page', before, exclude, search],
+    ['artists-page', before, exclude, search, JSON.stringify(filters)],
     async () => {
       const artists = []
       const seen = new Set(exclude)
@@ -1456,6 +1462,7 @@ export function useArtistsPage(before, exclude, search = '') {
             exclude,
             limit: ARTISTS_TOKEN_BATCH,
             search: `%${search}%`,
+            filters,
           }
         )
         exhausted = tokens.length < ARTISTS_TOKEN_BATCH
@@ -1481,7 +1488,8 @@ export function useArtistsPage(before, exclude, search = '') {
 
       const previews = await request(
         import.meta.env.VITE_TEIA_GRAPHQL_API,
-        buildArtistPreviewsQuery(artists.map((a) => a.address))
+        buildArtistPreviewsQuery(artists.map((a) => a.address)),
+        { filters }
       )
       artists.forEach((a, i) => {
         a.tokens = previews[`a${i}`] ?? []
