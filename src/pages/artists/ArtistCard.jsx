@@ -1,0 +1,371 @@
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Button } from '@atoms/button'
+import Identicon from '@atoms/identicons'
+import { HashToURL } from '@utils'
+import { ARTIST_IMAGE_MIMES } from '@data/artists'
+import { useAccountRoles } from '@data/roles'
+import { RoleBadgesView } from '@components/user-badges'
+import { TwitterIcon } from '@icons'
+import { resolveVerifiedBluesky } from '@utils/bsky'
+import styles from './index.module.scss'
+
+const SLIDE_SIZE = 3
+
+// Resized webp via imgproxy; raw display_uri can be many MB per image.
+const thumbUrl = (token) =>
+  token.teia_meta?.preview_uri && import.meta.env.VITE_IMGPROXY
+    ? `${import.meta.env.VITE_IMGPROXY}${token.teia_meta.preview_uri}`
+    : HashToURL(token.display_uri)
+
+// `filters`: [{ label, hide: token => bool, active }]. A token matched by an
+// active filter renders as a blank tile with its own reveal button.
+// First frame of a GIF without downloading the whole file. The CDN honours
+// Range requests; we fetch roughly one byte per pixel (measured: 60/60 recent
+// GIFs decode a complete first frame at that size), decode with the strict
+// createImageBitmap so a partial frame never paints, and retry once at 4x.
+const GIF_MIN_BYTES = 128 * 1024
+const GIF_MAX_BYTES = 4 * 1024 * 1024
+const GIF_THUMB_PX = 400 // canvas cap; native-size canvases x150 tiles blow GPU memory
+
+// Decode a few GIFs at a time: each decoded frame is native size in memory,
+// and 150 at once takes the tab down.
+const GIF_CONCURRENCY = 4
+let gifActive = 0
+const gifQueue = []
+function gifSlot() {
+  return new Promise((resolve) => {
+    const run = () => {
+      gifActive++
+      resolve(() => {
+        gifActive--
+        gifQueue.shift()?.()
+      })
+    }
+    gifActive < GIF_CONCURRENCY ? run() : gifQueue.push(run)
+  })
+}
+
+function gifHeadBytes(token) {
+  const [w, h] = (token.formats?.[0]?.dimensions?.value || '0x0')
+    .split('x')
+    .map(Number)
+  return Math.min(GIF_MAX_BYTES, Math.max(GIF_MIN_BYTES, w * h))
+}
+
+async function fetchGifFrame(url, bytes) {
+  const res = await fetch(url, { headers: { Range: `bytes=0-${bytes - 1}` } })
+  return createImageBitmap(await res.blob())
+}
+
+function GifThumb({ token, fallback }) {
+  const ref = useRef(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    let alive = true
+    let release
+    const url = HashToURL(token.display_uri)
+    const head = gifHeadBytes(token)
+    gifSlot()
+      .then((r) => {
+        release = r
+        if (!alive) return null
+        return fetchGifFrame(url, head).catch(() =>
+          fetchGifFrame(url, Math.min(GIF_MAX_BYTES * 2, head * 4))
+        )
+      })
+      .then((bm) => {
+        if (!bm || !alive) return
+        const scale = Math.min(1, GIF_THUMB_PX / Math.max(bm.width, bm.height))
+        canvas.width = Math.round(bm.width * scale)
+        canvas.height = Math.round(bm.height * scale)
+        canvas.getContext('2d').drawImage(bm, 0, 0, canvas.width, canvas.height)
+        bm.close()
+      })
+      .catch(() => alive && setFailed(true))
+      .finally(() => release?.())
+    return () => {
+      alive = false
+    }
+    // Parent rebuilds token objects each render; key on the id so a
+    // re-render never refetches the frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token.token_id])
+  if (failed) return fallback
+  return <canvas ref={ref} className={styles.thumb} title={token.name} />
+}
+
+export const FILETYPES = [
+  { label: 'Image', mimes: ARTIST_IMAGE_MIMES },
+  { label: 'GIF', mimes: ['image/gif'] },
+  { label: 'Video', mimes: ['video/mp4', 'video/quicktime', 'video/webm'] },
+  { label: 'Audio', mimes: ['audio/mpeg', 'audio/wav', 'audio/ogg'] },
+  { label: 'SVG', mimes: ['image/svg+xml'] },
+  { label: 'Interactive', mimes: ['application/x-directory'] },
+  { label: 'PDF', mimes: ['application/pdf'] },
+  { label: 'Text', mimes: ['text/plain', 'text/markdown'] },
+]
+
+function Carousel({ tokens, filters }) {
+  const [slide, setSlide] = useState(0)
+  // token_ids revealed on this card, one image at a time.
+  const [revealed, setRevealed] = useState(() => new Set())
+
+  const hiddenLabels = (token) =>
+    revealed.has(token.token_id)
+      ? []
+      : filters.filter((f) => f.active && f.hide(token)).map((f) => f.label)
+
+  if (!tokens.length) {
+    // Same footprint as a slide, so the card stays full height.
+    return (
+      <div className={styles.placeholder}>
+        <div className={styles.placeholder_strip}>
+          <div className={styles.slide}>
+            <div className={styles.blank} />
+            <div className={styles.blank} />
+            <div className={styles.blank} />
+          </div>
+          <div className={styles.placeholder_label}>no creations</div>
+        </div>
+        <div className={styles.controls}>&nbsp;</div>
+      </div>
+    )
+  }
+
+  const slides = Math.ceil(tokens.length / SLIDE_SIZE)
+  const safeSlide = Math.min(slide, slides - 1)
+  const visible = tokens.slice(
+    safeSlide * SLIDE_SIZE,
+    safeSlide * SLIDE_SIZE + SLIDE_SIZE
+  )
+
+  return (
+    <div className={styles.carousel}>
+      <div className={styles.slide}>
+        {visible.map((token) => {
+          const labels = hiddenLabels(token)
+          return labels.length ? (
+            <div key={token.token_id} className={styles.hidden_tile}>
+              <Button
+                shadow_box
+                onClick={() =>
+                  setRevealed((r) => new Set(r).add(token.token_id))
+                }
+              >
+                Show {labels.join(' / ')}
+              </Button>
+            </div>
+          ) : ARTIST_IMAGE_MIMES.includes(token.mime_type) ? (
+            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
+              <img
+                className={styles.thumb}
+                src={thumbUrl(token)}
+                alt={token.name}
+                loading="lazy"
+              />
+            </Link>
+          ) : token.mime_type === 'image/gif' ? (
+            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
+              <GifThumb
+                token={token}
+                fallback={<div className={styles.hidden_tile}>GIF</div>}
+              />
+            </Link>
+          ) : (
+            <Link
+              key={token.token_id}
+              to={`/objkt/${token.token_id}`}
+              className={styles.hidden_tile}
+            >
+              {FILETYPES.find((t) => t.mimes.includes(token.mime_type))
+                ?.label ?? token.mime_type}
+            </Link>
+          )
+        })}
+      </div>
+      {/* Always rendered so every card is the same height. */}
+      <div className={styles.controls}>
+        {slides > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setSlide((i) => (i - 1 + slides) % slides)}
+              aria-label="Previous creations"
+            >
+              ‹
+            </button>
+            <span>
+              {safeSlide + 1} / {slides}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSlide((i) => (i + 1) % slides)}
+              aria-label="Next creations"
+            >
+              ›
+            </button>
+          </>
+        ) : (
+          <span>&nbsp;</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Everything an artist can choose to show on their card, in display order.
+// Stored on-chain as subjkt metadata `card.show`; see configure.jsx.
+export const CARD_FIELDS = [
+  { key: 'bio', label: 'Bio' },
+  { key: 'roles', label: 'Role badges' },
+  { key: 'domain', label: 'Tezos domain' },
+  { key: 'twitter', label: 'Twitter' },
+  { key: 'bluesky', label: 'Bluesky' },
+  { key: 'discord', label: 'Discord' },
+  { key: 'github', label: 'GitHub' },
+  { key: 'baker', label: 'Baker' },
+  { key: 'teia', label: 'TEIA balance' },
+  { key: 'since', label: 'Member since' },
+]
+export const DEFAULT_SHOW = ['bio']
+
+// Local draft of an artist's card config until the on-chain write lands.
+export const draftKey = (address) => `artist-card:${address}`
+export function readDraft(address) {
+  try {
+    const raw = localStorage.getItem(draftKey(address))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function useBluesky(address, enabled) {
+  const [bsky, setBsky] = useState(null)
+  useEffect(() => {
+    if (!enabled) return
+    let alive = true
+    resolveVerifiedBluesky(address).then((r) => alive && setBsky(r))
+    return () => {
+      alive = false
+    }
+  }, [address, enabled])
+  return bsky
+}
+
+/**
+ * One artist card. `extras` is the batched TzKT / Tezos Domains / DAO data
+ * for this address (see useArtistExtras); `show` lists CARD_FIELDS keys.
+ */
+export default function ArtistCard({
+  artist,
+  extras = {},
+  show = DEFAULT_SHOW,
+  hazardFilters = [],
+  marketFilter = () => true,
+}) {
+  const roles = useAccountRoles(show.includes('roles') ? artist.address : null)
+  const bsky = useBluesky(artist.address, show.includes('bluesky'))
+  const on = (k) => show.includes(k)
+
+  const links = [
+    on('domain') &&
+      extras.domain && {
+        label: extras.domain,
+        href: `https://tzkt.io/${artist.address}`,
+      },
+    on('twitter') &&
+      extras.twitter && {
+        label: `@${extras.twitter}`,
+        icon: <TwitterIcon className={styles.link_icon} />,
+        href: `https://twitter.com/${extras.twitter}`,
+      },
+    on('bluesky') &&
+      bsky?.handle && {
+        label: `@${bsky.handle}`,
+        href: `https://bsky.app/profile/${bsky.did}`,
+      },
+    on('discord') &&
+      extras.discord && { label: extras.discord, title: 'Discord' },
+    on('github') &&
+      extras.github && {
+        label: extras.github,
+        href: `https://github.com/${extras.github}`,
+      },
+  ].filter(Boolean)
+
+  const facts = [
+    on('baker') && { label: 'Baker', value: extras.baker || 'Not delegated' },
+    on('teia') &&
+      extras.teia != null && {
+        label: 'TEIA',
+        value: Math.round(extras.teia * 10) / 10,
+      },
+    on('since') &&
+      extras.since && {
+        label: 'Since',
+        value: new Date(extras.since).getFullYear(),
+      },
+  ].filter(Boolean)
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.header}>
+        <Identicon
+          className={styles.identicon}
+          address={artist.address}
+          logo={artist.identicon}
+        />
+        <div className={styles.info}>
+          <Link
+            className={styles.name}
+            to={`/${encodeURIComponent(artist.name)}`}
+          >
+            {artist.name}
+          </Link>
+          {on('roles') && (
+            <RoleBadgesView roles={roles} className={styles.badges} />
+          )}
+          <p className={styles.description}>
+            {on('bio') ? artist.description : ''}
+          </p>
+          {(links.length > 0 || facts.length > 0) && (
+            <div className={styles.meta}>
+              {links.map((l) =>
+                l.href ? (
+                  <a
+                    key={l.label}
+                    href={l.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={l.label}
+                  >
+                    {l.icon ?? l.label}
+                  </a>
+                ) : (
+                  <span key={l.label} title={l.title}>
+                    {l.label}
+                  </span>
+                )
+              )}
+              {facts.map((f) => (
+                <span key={f.label}>
+                  {f.label}: {f.value}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <Carousel
+        tokens={artist.tokens
+          .map((t) => ({ ...t, artist: artist.address }))
+          .filter(marketFilter)}
+        filters={hazardFilters}
+      />
+    </div>
+  )
+}

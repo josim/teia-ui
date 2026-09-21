@@ -86,6 +86,7 @@ import Display from '@pages/profile'
 import BakerPage from '@pages/baker'
 import BakersPage from '@pages/bakers'
 import ArtistsPage from '@pages/artists'
+import ConfigureArtistCard from '@pages/artists/configure'
 import Collections from '@pages/profile/collections'
 import Creations from '@pages/profile/creations'
 import Collabs from '@pages/profile/collabs'
@@ -245,6 +246,10 @@ const router = createBrowserRouter(
         </Route>
         <Route path="bakers" element={<BakersPage />} />
         <Route path="artists" element={<ArtistsPage />} />
+        <Route
+          path="artists/configure/:name"
+          element={<ConfigureArtistCard />}
+        />
         <Route path="baker/:address" element={<BakerPage />} />
         <Route path="subjkt/*" element={<Subjkt />} />
         <Route path="settings/*" element={<Settings />} />

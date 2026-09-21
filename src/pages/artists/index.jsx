@@ -4,9 +4,8 @@ import { Page, Container } from '@atoms/layout'
 import { Button } from '@atoms/button'
 import { Loading } from '@atoms/loading'
 import { Checkbox, Input } from '@atoms/input'
-import Identicon from '@atoms/identicons'
-import { HashToURL } from '@utils'
-import { useArtistsPage, ARTIST_IMAGE_MIMES } from '@data/swr'
+import { useArtistsPage, useArtistExtras } from '@data/artists'
+import ArtistCard, { FILETYPES, DEFAULT_SHOW, readDraft } from './ArtistCard'
 import useSettings from '@hooks/use-settings'
 import {
   METADATA_ACCESSIBILITY_HAZARDS_PHOTOSENS,
@@ -14,101 +13,8 @@ import {
 } from '@constants'
 import styles from './index.module.scss'
 
-const SLIDE_SIZE = 3
 const HINT_PX = 40 // full height of the scroll-for-next-page bar
 
-// Resized webp via imgproxy; raw display_uri can be many MB per image.
-const thumbUrl = (token) =>
-  token.teia_meta?.preview_uri && import.meta.env.VITE_IMGPROXY
-    ? `${import.meta.env.VITE_IMGPROXY}${token.teia_meta.preview_uri}`
-    : HashToURL(token.display_uri)
-
-// `filters`: [{ label, hide: token => bool, active }]. A token matched by an
-// active filter renders as a blank tile with its own reveal button.
-// First frame of a GIF without downloading the whole file. The CDN honours
-// Range requests; we fetch roughly one byte per pixel (measured: 60/60 recent
-// GIFs decode a complete first frame at that size), decode with the strict
-// createImageBitmap so a partial frame never paints, and retry once at 4x.
-const GIF_MIN_BYTES = 128 * 1024
-const GIF_MAX_BYTES = 4 * 1024 * 1024
-const GIF_THUMB_PX = 400 // canvas cap; native-size canvases x150 tiles blow GPU memory
-
-// Decode a few GIFs at a time: each decoded frame is native size in memory,
-// and 150 at once takes the tab down.
-const GIF_CONCURRENCY = 4
-let gifActive = 0
-const gifQueue = []
-function gifSlot() {
-  return new Promise((resolve) => {
-    const run = () => {
-      gifActive++
-      resolve(() => {
-        gifActive--
-        gifQueue.shift()?.()
-      })
-    }
-    gifActive < GIF_CONCURRENCY ? run() : gifQueue.push(run)
-  })
-}
-
-function gifHeadBytes(token) {
-  const [w, h] = (token.formats?.[0]?.dimensions?.value || '0x0')
-    .split('x')
-    .map(Number)
-  return Math.min(GIF_MAX_BYTES, Math.max(GIF_MIN_BYTES, w * h))
-}
-
-async function fetchGifFrame(url, bytes) {
-  const res = await fetch(url, { headers: { Range: `bytes=0-${bytes - 1}` } })
-  return createImageBitmap(await res.blob())
-}
-
-function GifThumb({ token, fallback }) {
-  const ref = useRef(null)
-  const [failed, setFailed] = useState(false)
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    let alive = true
-    let release
-    const url = HashToURL(token.display_uri)
-    const head = gifHeadBytes(token)
-    gifSlot()
-      .then((r) => {
-        release = r
-        if (!alive) return null
-        return fetchGifFrame(url, head).catch(() =>
-          fetchGifFrame(url, Math.min(GIF_MAX_BYTES * 2, head * 4))
-        )
-      })
-      .then((bm) => {
-        if (!bm || !alive) return
-        const scale = Math.min(1, GIF_THUMB_PX / Math.max(bm.width, bm.height))
-        canvas.width = Math.round(bm.width * scale)
-        canvas.height = Math.round(bm.height * scale)
-        canvas.getContext('2d').drawImage(bm, 0, 0, canvas.width, canvas.height)
-        bm.close()
-      })
-      .catch(() => alive && setFailed(true))
-      .finally(() => release?.())
-    return () => {
-      alive = false
-    }
-  }, [token])
-  if (failed) return fallback
-  return <canvas ref={ref} className={styles.thumb} title={token.name} />
-}
-
-const FILETYPES = [
-  { label: 'Image', mimes: ARTIST_IMAGE_MIMES },
-  { label: 'GIF', mimes: ['image/gif'] },
-  { label: 'Video', mimes: ['video/mp4', 'video/quicktime', 'video/webm'] },
-  { label: 'Audio', mimes: ['audio/mpeg', 'audio/wav', 'audio/ogg'] },
-  { label: 'SVG', mimes: ['image/svg+xml'] },
-  { label: 'Interactive', mimes: ['application/x-directory'] },
-  { label: 'PDF', mimes: ['application/pdf'] },
-  { label: 'Text', mimes: ['text/plain', 'text/markdown'] },
-]
 const YEARS = Array.from(
   { length: new Date().getFullYear() - 2021 + 1 },
   (_, i) => 2021 + i
@@ -166,114 +72,6 @@ function Chips({ options, selected, onToggle, labelOf = (o) => o }) {
   )
 }
 
-function Carousel({ tokens, filters }) {
-  const [slide, setSlide] = useState(0)
-  // token_ids revealed on this card, one image at a time.
-  const [revealed, setRevealed] = useState(() => new Set())
-
-  const hiddenLabels = (token) =>
-    revealed.has(token.token_id)
-      ? []
-      : filters.filter((f) => f.active && f.hide(token)).map((f) => f.label)
-
-  if (!tokens.length) {
-    // Same footprint as a slide, so the card stays full height.
-    return (
-      <div className={styles.placeholder}>
-        <div className={styles.placeholder_strip}>
-          <div className={styles.slide}>
-            <div className={styles.blank} />
-            <div className={styles.blank} />
-            <div className={styles.blank} />
-          </div>
-          <div className={styles.placeholder_label}>no creations</div>
-        </div>
-        <div className={styles.controls}>&nbsp;</div>
-      </div>
-    )
-  }
-
-  const slides = Math.ceil(tokens.length / SLIDE_SIZE)
-  const safeSlide = Math.min(slide, slides - 1)
-  const visible = tokens.slice(
-    safeSlide * SLIDE_SIZE,
-    safeSlide * SLIDE_SIZE + SLIDE_SIZE
-  )
-
-  return (
-    <div className={styles.carousel}>
-      <div className={styles.slide}>
-        {visible.map((token) => {
-          const labels = hiddenLabels(token)
-          return labels.length ? (
-            <div key={token.token_id} className={styles.hidden_tile}>
-              <Button
-                shadow_box
-                onClick={() =>
-                  setRevealed((r) => new Set(r).add(token.token_id))
-                }
-              >
-                Show {labels.join(' / ')}
-              </Button>
-            </div>
-          ) : ARTIST_IMAGE_MIMES.includes(token.mime_type) ? (
-            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
-              <img
-                className={styles.thumb}
-                src={thumbUrl(token)}
-                alt={token.name}
-                loading="lazy"
-              />
-            </Link>
-          ) : token.mime_type === 'image/gif' ? (
-            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
-              <GifThumb
-                token={token}
-                fallback={<div className={styles.hidden_tile}>GIF</div>}
-              />
-            </Link>
-          ) : (
-            <Link
-              key={token.token_id}
-              to={`/objkt/${token.token_id}`}
-              className={styles.hidden_tile}
-            >
-              {FILETYPES.find((t) => t.mimes.includes(token.mime_type))
-                ?.label ?? token.mime_type}
-            </Link>
-          )
-        })}
-      </div>
-      {/* Always rendered so every card is the same height. */}
-      <div className={styles.controls}>
-        {slides > 1 ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setSlide((i) => (i - 1 + slides) % slides)}
-              aria-label="Previous creations"
-            >
-              ‹
-            </button>
-            <span>
-              {safeSlide + 1} / {slides}
-            </span>
-            <button
-              type="button"
-              onClick={() => setSlide((i) => (i + 1) % slides)}
-              aria-label="Next creations"
-            >
-              ›
-            </button>
-          </>
-        ) : (
-          <span>&nbsp;</span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export default function ArtistsPage() {
   // Each entry is the (cursor, excluded artists) pair that produced a page;
   // the last entry is the current page. Previous just pops.
@@ -295,6 +93,9 @@ export default function ArtistsPage() {
     current.exclude,
     applied.search,
     applied.filters
+  )
+  const { data: extras } = useArtistExtras(
+    data?.artists.map((a) => a.address) ?? []
   )
   const setF = (key, value) => setFilters((f) => ({ ...f, [key]: value }))
   const activeCount =
@@ -387,10 +188,18 @@ export default function ArtistsPage() {
     <Page title="Artists">
       <Container>
         <div className={styles.page}>
-          <h1 className={styles.heading}>Artists</h1>
-          <p className={styles.subheading}>
-            Artists by most recent mint, with their latest creations.
-          </p>
+          <div className={styles.header_row}>
+            <div>
+              <h1 className={styles.heading}>Artists</h1>
+              <p className={styles.subheading}>
+                Artists by most recent mint, with their latest creations.
+              </p>
+            </div>
+            {/* TODO: link to the connected wallet's subjkt once the on-chain save exists */}
+            <Button shadow_box small to="/artists/configure/malicioussheep">
+              Customize my card
+            </Button>
+          </div>
 
           <Input
             className={styles.search}
@@ -399,18 +208,19 @@ export default function ArtistsPage() {
             onChange={setSearch}
             placeholder="Search artists by name"
             label="Search"
-          />
-          <div className={styles.filter_bar}>
-            <Button small onClick={() => setShowFilters((v) => !v)}>
-              {showFilters ? '▴' : '▾'} Filters
-              {activeCount ? ` (${activeCount})` : ''}
-            </Button>
-            {activeCount > 0 && (
-              <Button small onClick={() => setFilters(EMPTY_FILTERS)}>
-                Clear
-              </Button>
-            )}
-          </div>
+          >
+            <div className={styles.search_actions}>
+              {activeCount > 0 && (
+                <button type="button" onClick={() => setFilters(EMPTY_FILTERS)}>
+                  Clear
+                </button>
+              )}
+              <button type="button" onClick={() => setShowFilters((v) => !v)}>
+                {showFilters ? '▴' : '▾'} Filters
+                {activeCount ? ` (${activeCount})` : ''}
+              </button>
+            </div>
+          </Input>
           {showFilters && (
             <div className={styles.filters}>
               <div className={styles.filter_row}>
@@ -486,30 +296,18 @@ export default function ArtistsPage() {
           {data && (
             <div className={styles.grid}>
               {data.artists.map((artist) => (
-                <div key={artist.address} className={styles.card}>
-                  <div className={styles.header}>
-                    <Identicon
-                      className={styles.identicon}
-                      address={artist.address}
-                      logo={artist.identicon}
-                    />
-                    <div className={styles.info}>
-                      <Link
-                        className={styles.name}
-                        to={`/${encodeURIComponent(artist.name)}`}
-                      >
-                        {artist.name}
-                      </Link>
-                      <p className={styles.description}>{artist.description}</p>
-                    </div>
-                  </div>
-                  <Carousel
-                    tokens={artist.tokens
-                      .map((t) => ({ ...t, artist: artist.address }))
-                      .filter(marketFilter)}
-                    filters={hazardFilters}
-                  />
-                </div>
+                <ArtistCard
+                  key={artist.address}
+                  artist={artist}
+                  extras={extras?.[artist.address]}
+                  show={
+                    readDraft(artist.address)?.show ??
+                    artist.card?.show ??
+                    DEFAULT_SHOW
+                  }
+                  hazardFilters={hazardFilters}
+                  marketFilter={marketFilter}
+                />
               ))}
             </div>
           )}

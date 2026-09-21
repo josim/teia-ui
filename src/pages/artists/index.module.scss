@@ -6,6 +6,14 @@
   padding: 1rem 0;
 }
 
+.header_row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .heading {
   margin: 0;
 }
@@ -21,6 +29,7 @@
   width: 100%;
   max-width: 520px;
   margin: 0.5rem auto;
+  position: relative;
 
   // Input atom always renders a label; placeholder does the job here.
   label p {
@@ -29,7 +38,8 @@
 
   label input {
     width: 100%;
-    padding: 0.6rem 0.9rem;
+    // Right padding clears the Filters/Clear controls.
+    padding: 0.6rem 7rem 0.6rem 0.9rem;
     border: 1px solid var(--text-color);
     border-radius: 4px;
     background: transparent;
@@ -43,10 +53,23 @@
   }
 }
 
-.filter_bar {
+.search_actions {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+
+  button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: var(--font-size-small, 0.8rem);
+    white-space: nowrap;
+  }
 }
 
 .filters {
@@ -285,6 +308,12 @@
   }
 }
 
+@media (min-width: 769px) {
+  .toggles {
+    gap: 2.5rem;
+  }
+}
+
 .hint {
   position: relative;
   overflow: hidden;
@@ -308,4 +337,79 @@
   bottom: 0;
   background: #ccc;
   transition: width 0.15s ease-out;
+}
+
+.badges {
+  display: inline-flex;
+  margin: 0 0 0 0.5rem;
+  vertical-align: middle;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.25rem;
+  font-size: var(--font-size-small, 0.8rem);
+  opacity: 0.8;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}
+
+.link_icon {
+  width: 14px;
+  height: 14px;
+  fill: var(--text-color);
+  vertical-align: middle;
+}
+
+.configure {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.configure_options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.configure_field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.configure_warn {
+  font-size: var(--font-size-small, 0.75rem);
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.configure_actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.configure_preview {
+  max-width: 600px;
+}
+
+.note {
+  margin: 0.5rem 0 0;
+  opacity: 0.5;
+  font-size: var(--font-size-small, 0.8rem);
+}
+
+@media (max-width: 768px) {
+  .configure {
+    grid-template-columns: 1fr;
+  }
 }
