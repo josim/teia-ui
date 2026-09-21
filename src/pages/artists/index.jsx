@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom'
 import { Page, Container } from '@atoms/layout'
 import { Button } from '@atoms/button'
 import { Loading } from '@atoms/loading'
-import { Checkbox } from '@atoms/input'
-import Identicon from '@atoms/identicons'
-import { HashToURL } from '@utils'
-import { useArtistsPage } from '@data/swr'
+import { Checkbox, Input } from '@atoms/input'
+import { useArtistsPage, useArtistExtras } from '@data/artists'
+import ArtistCard, { FILETYPES, DEFAULT_SHOW, readDraft } from './ArtistCard'
 import useSettings from '@hooks/use-settings'
 import {
   METADATA_ACCESSIBILITY_HAZARDS_PHOTOSENS,
@@ -14,105 +13,61 @@ import {
 } from '@constants'
 import styles from './index.module.scss'
 
-const SLIDE_SIZE = 3
 const HINT_PX = 40 // full height of the scroll-for-next-page bar
 
-// Resized webp via imgproxy; raw display_uri can be many MB per image.
-const thumbUrl = (token) =>
-  token.teia_meta?.preview_uri && import.meta.env.VITE_IMGPROXY
-    ? `${import.meta.env.VITE_IMGPROXY}${token.teia_meta.preview_uri}`
-    : HashToURL(token.display_uri)
+const YEARS = Array.from(
+  { length: new Date().getFullYear() - 2021 + 1 },
+  (_, i) => 2021 + i
+)
+const LICENSES = [
+  { label: 'None', value: 'none' },
+  { label: 'CC BY', value: 'cc-by-4.0' },
+  { label: 'CC BY-NC', value: 'cc-by-nc-4.0' },
+  { label: 'CC BY-SA', value: 'cc-by-sa-4.0' },
+]
+const MARKETS = ['All', 'Primary', 'Secondary']
+const EMPTY_FILTERS = {
+  types: [],
+  years: [],
+  licenses: [],
+  market: 'All',
+  tag: '',
+}
 
-// `filters`: [{ label, hide: token => bool, active }]. A token matched by an
-// active filter renders as a blank tile with its own reveal button.
-function Carousel({ tokens, filters }) {
-  const [slide, setSlide] = useState(0)
-  // token_ids revealed on this card, one image at a time.
-  const [revealed, setRevealed] = useState(() => new Set())
+// Filter state -> Hasura tokens_bool_exp. Primary/secondary only narrows to
+// "has an active listing" here; the seller split happens client-side.
+function toBoolExp(f) {
+  const and = []
+  if (f.types.length)
+    and.push({ mime_type: { _in: f.types.flatMap((t) => t.mimes) } })
+  if (f.years.length)
+    and.push({
+      _or: f.years.map((y) => ({
+        minted_at: { _gte: `${y}-01-01`, _lt: `${y + 1}-01-01` },
+      })),
+    })
+  if (f.licenses.length) and.push({ rights: { _in: f.licenses } })
+  if (f.market !== 'All') and.push({ listings: { status: { _eq: 'active' } } })
+  if (f.tag) and.push({ tags: { tag: { _ilike: `%${f.tag}%` } } })
+  return and.length ? { _and: and } : {}
+}
 
-  const hiddenLabels = (token) =>
-    revealed.has(token.token_id)
-      ? []
-      : filters.filter((f) => f.active && f.hide(token)).map((f) => f.label)
+const toggleIn = (list, item) =>
+  list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 
-  if (!tokens.length) {
-    // Same footprint as a slide, so the card stays full height.
-    return (
-      <div className={styles.placeholder}>
-        <div className={styles.placeholder_strip}>
-          <div className={styles.slide}>
-            <div className={styles.blank} />
-            <div className={styles.blank} />
-            <div className={styles.blank} />
-          </div>
-          <div className={styles.placeholder_label}>no creations</div>
-        </div>
-        <div className={styles.controls}>&nbsp;</div>
-      </div>
-    )
-  }
-
-  const slides = Math.ceil(tokens.length / SLIDE_SIZE)
-  const safeSlide = Math.min(slide, slides - 1)
-  const visible = tokens.slice(
-    safeSlide * SLIDE_SIZE,
-    safeSlide * SLIDE_SIZE + SLIDE_SIZE
-  )
-
+function Chips({ options, selected, onToggle, labelOf = (o) => o }) {
   return (
-    <div className={styles.carousel}>
-      <div className={styles.slide}>
-        {visible.map((token) => {
-          const labels = hiddenLabels(token)
-          return labels.length ? (
-            <div key={token.token_id} className={styles.hidden_tile}>
-              <Button
-                shadow_box
-                onClick={() =>
-                  setRevealed((r) => new Set(r).add(token.token_id))
-                }
-              >
-                Show {labels.join(' / ')}
-              </Button>
-            </div>
-          ) : (
-            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
-              <img
-                className={styles.thumb}
-                src={thumbUrl(token)}
-                alt={token.name}
-                loading="lazy"
-              />
-            </Link>
-          )
-        })}
-      </div>
-      {/* Always rendered so every card is the same height. */}
-      <div className={styles.controls}>
-        {slides > 1 ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setSlide((i) => (i - 1 + slides) % slides)}
-              aria-label="Previous creations"
-            >
-              ‹
-            </button>
-            <span>
-              {safeSlide + 1} / {slides}
-            </span>
-            <button
-              type="button"
-              onClick={() => setSlide((i) => (i + 1) % slides)}
-              aria-label="Next creations"
-            >
-              ›
-            </button>
-          </>
-        ) : (
-          <span>&nbsp;</span>
-        )}
-      </div>
+    <div className={styles.chips}>
+      {options.map((o) => (
+        <button
+          key={labelOf(o)}
+          type="button"
+          className={selected.includes(o) ? styles.chip_active : styles.chip}
+          onClick={() => onToggle(o)}
+        >
+          {labelOf(o)}
+        </button>
+      ))}
     </div>
   )
 }
@@ -122,13 +77,46 @@ export default function ArtistsPage() {
   // the last entry is the current page. Previous just pops.
   const [history, setHistory] = useState([{ before: null, exclude: [] }])
   const current = history[history.length - 1]
-  const { data, error } = useArtistsPage(current.before, current.exclude)
+  const [search, setSearch] = useState('')
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [showFilters, setShowFilters] = useState(false)
+  const [applied, setApplied] = useState({ search: '', filters: {} })
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setApplied({ search: search.trim(), filters: toBoolExp(filters) })
+      setHistory([{ before: null, exclude: [] }])
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search, filters])
+  const { data, error } = useArtistsPage(
+    current.before,
+    current.exclude,
+    applied.search,
+    applied.filters
+  )
+  const { data: extras } = useArtistExtras(
+    data?.artists.map((a) => a.address) ?? []
+  )
+  const setF = (key, value) => setFilters((f) => ({ ...f, [key]: value }))
+  const activeCount =
+    filters.types.length +
+    filters.years.length +
+    filters.licenses.length +
+    (filters.market !== 'All') +
+    (filters.tag ? 1 : 0)
+
+  // Primary/secondary split needs a column compare Hasura can't do server-side.
+  const marketFilter = (token) => {
+    if (filters.market === 'All') return true
+    const own = token.listings.some((l) => l.seller_address === token.artist)
+    return filters.market === 'Primary' ? own : token.listings.length && !own
+  }
   const page = history.length - 1
 
   const [showPhotosensitive, setShowPhotosensitive] = useState(false)
   const [showNsfw, setShowNsfw] = useState(false)
   const { photosensitiveMap, nsfwMap } = useSettings()
-  const filters = [
+  const hazardFilters = [
     {
       label: 'Photosensitive',
       active: !showPhotosensitive,
@@ -200,12 +188,92 @@ export default function ArtistsPage() {
     <Page title="Artists">
       <Container>
         <div className={styles.page}>
-          <h1 className={styles.heading}>Artists</h1>
-          <p className={styles.subheading}>
-            Artists by most recent mint, with their latest creations.
-          </p>
+          <div className={styles.header_row}>
+            <div>
+              <h1 className={styles.heading}>Artists</h1>
+              <p className={styles.subheading}>
+                Artists by most recent mint, with their latest creations.
+              </p>
+            </div>
+            {/* TODO: link to the connected wallet's subjkt once the on-chain save exists */}
+            <Button shadow_box small to="/artists/configure/malicioussheep">
+              Customize my card
+            </Button>
+          </div>
 
-          <div className={styles.controls}>
+          <Input
+            className={styles.search}
+            name="artist-search"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search artists by name"
+            label="Search"
+          >
+            <div className={styles.search_actions}>
+              {activeCount > 0 && (
+                <button type="button" onClick={() => setFilters(EMPTY_FILTERS)}>
+                  Clear
+                </button>
+              )}
+              <button type="button" onClick={() => setShowFilters((v) => !v)}>
+                {showFilters ? '▴' : '▾'} Filters
+                {activeCount ? ` (${activeCount})` : ''}
+              </button>
+            </div>
+          </Input>
+          {showFilters && (
+            <div className={styles.filters}>
+              <div className={styles.filter_row}>
+                <span className={styles.filter_label}>Filetype</span>
+                <Chips
+                  options={FILETYPES}
+                  selected={filters.types}
+                  labelOf={(t) => t.label}
+                  onToggle={(t) => setF('types', toggleIn(filters.types, t))}
+                />
+              </div>
+              <div className={styles.filter_row}>
+                <span className={styles.filter_label}>Year</span>
+                <Chips
+                  options={YEARS}
+                  selected={filters.years}
+                  labelOf={String}
+                  onToggle={(y) => setF('years', toggleIn(filters.years, y))}
+                />
+              </div>
+              <div className={styles.filter_row}>
+                <span className={styles.filter_label}>License</span>
+                <Chips
+                  options={LICENSES.map((l) => l.value)}
+                  selected={filters.licenses}
+                  labelOf={(v) => LICENSES.find((l) => l.value === v).label}
+                  onToggle={(v) =>
+                    setF('licenses', toggleIn(filters.licenses, v))
+                  }
+                />
+              </div>
+              <div className={styles.filter_row}>
+                <span className={styles.filter_label}>Market</span>
+                <Chips
+                  options={MARKETS}
+                  selected={[filters.market]}
+                  onToggle={(m) => setF('market', m)}
+                />
+              </div>
+              <div className={styles.filter_row}>
+                <span className={styles.filter_label}>Tag</span>
+                <input
+                  className={styles.tag_input}
+                  value={filters.tag}
+                  onChange={(e) =>
+                    setF('tag', e.target.value.replace(/^#/, ''))
+                  }
+                  placeholder="e.g. glitch"
+                />
+              </div>
+            </div>
+          )}
+          <div className={styles.toggles}>
             <Checkbox
               checked={showPhotosensitive}
               onCheck={setShowPhotosensitive}
@@ -228,25 +296,18 @@ export default function ArtistsPage() {
           {data && (
             <div className={styles.grid}>
               {data.artists.map((artist) => (
-                <div key={artist.address} className={styles.card}>
-                  <div className={styles.header}>
-                    <Identicon
-                      className={styles.identicon}
-                      address={artist.address}
-                      logo={artist.identicon}
-                    />
-                    <div className={styles.info}>
-                      <Link
-                        className={styles.name}
-                        to={`/${encodeURIComponent(artist.name)}`}
-                      >
-                        {artist.name}
-                      </Link>
-                      <p className={styles.description}>{artist.description}</p>
-                    </div>
-                  </div>
-                  <Carousel tokens={artist.tokens} filters={filters} />
-                </div>
+                <ArtistCard
+                  key={artist.address}
+                  artist={artist}
+                  extras={extras?.[artist.address]}
+                  show={
+                    readDraft(artist.address)?.show ??
+                    artist.card?.show ??
+                    DEFAULT_SHOW
+                  }
+                  hazardFilters={hazardFilters}
+                  marketFilter={marketFilter}
+                />
               ))}
             </div>
           )}
@@ -262,7 +323,10 @@ export default function ArtistsPage() {
               </Button>
             </div>
           )}
-          <div className={styles.hint} style={{ height: pull * HINT_PX }}>
+          <div
+            className={styles.hint}
+            style={{ height: pull > 0 ? HINT_PX : 0 }}
+          >
             <div
               className={styles.hint_progress}
               style={{ width: `${pull * 100}%` }}

@@ -6,6 +6,14 @@
   padding: 1rem 0;
 }
 
+.header_row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .heading {
   margin: 0;
 }
@@ -16,9 +24,117 @@
   font-size: var(--font-size-small, 0.85rem);
 }
 
-.controls {
+// Doubled class beats the Input atom's own `.container label input` rules.
+.search.search {
+  width: 100%;
+  max-width: 520px;
+  margin: 0.5rem auto;
+  position: relative;
+
+  // Input atom always renders a label; placeholder does the job here.
+  label p {
+    display: none;
+  }
+
+  label input {
+    width: 100%;
+    // Right padding clears the Filters/Clear controls.
+    padding: 0.6rem 7rem 0.6rem 0.9rem;
+    border: 1px solid var(--text-color);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-color);
+    text-align: center;
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--border-color);
+    }
+  }
+}
+
+.search_actions {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 0.75rem;
+
+  button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: var(--font-size-small, 0.8rem);
+    white-space: nowrap;
+  }
+}
+
+.filters {
+  max-width: 720px;
+  margin: 0.5rem auto;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter_row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter_label {
+  width: 5.5rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+  font-size: var(--font-size-small, 0.8rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chips {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chip,
+.chip_active {
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-color);
+  font-size: var(--font-size-small, 0.8rem);
+}
+
+.chip_active {
+  border-color: var(--text-color);
+  background: var(--text-color);
+  color: var(--background-color);
+}
+
+.tag_input {
+  flex: 1;
+  min-width: 10rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-color);
+}
+
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
   margin-bottom: 0.5rem;
 }
@@ -192,6 +308,12 @@
   }
 }
 
+@media (min-width: 769px) {
+  .toggles {
+    gap: 2.5rem;
+  }
+}
+
 .hint {
   position: relative;
   overflow: hidden;
@@ -201,7 +323,7 @@
   font-size: var(--font-size-small, 0.85rem);
   background: #fff;
   color: #000;
-  transition: height 0.1s linear;
+  transition: height 0.2s ease-out;
 
   span {
     position: relative;
@@ -214,5 +336,80 @@
   top: 0;
   bottom: 0;
   background: #ccc;
-  transition: width 0.1s linear;
+  transition: width 0.15s ease-out;
+}
+
+.badges {
+  display: inline-flex;
+  margin: 0 0 0 0.5rem;
+  vertical-align: middle;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.25rem;
+  font-size: var(--font-size-small, 0.8rem);
+  opacity: 0.8;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}
+
+.link_icon {
+  width: 14px;
+  height: 14px;
+  fill: var(--text-color);
+  vertical-align: middle;
+}
+
+.configure {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.configure_options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.configure_field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.configure_warn {
+  font-size: var(--font-size-small, 0.75rem);
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.configure_actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.configure_preview {
+  max-width: 600px;
+}
+
+.note {
+  margin: 0.5rem 0 0;
+  opacity: 0.5;
+  font-size: var(--font-size-small, 0.8rem);
+}
+
+@media (max-width: 768px) {
+  .configure {
+    grid-template-columns: 1fr;
+  }
 }
