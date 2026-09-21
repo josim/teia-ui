@@ -8,6 +8,7 @@ import { useAccountRoles } from '@data/roles'
 import { RoleBadgesView } from '@components/user-badges'
 import { TwitterIcon } from '@icons'
 import { resolveVerifiedBluesky } from '@utils/bsky'
+import '@google/model-viewer'
 import styles from './index.module.scss'
 
 const SLIDE_SIZE = 3
@@ -117,6 +118,7 @@ function HoverThumb({ label, still, live }) {
 
 const VIDEO_MIMES = ['video/mp4', 'video/quicktime', 'video/webm']
 const AUDIO_MIMES = ['audio/mpeg', 'audio/wav', 'audio/ogg']
+const MODEL_MIMES = ['model/gltf-binary', 'model/gltf+json']
 
 // Video/audio poster (display_uri) is often itself a GIF; those go through
 // the same first-frame path as GIF tokens, the rest through imgproxy.
@@ -306,6 +308,7 @@ export const FILETYPES = [
   { label: 'Audio', mimes: ['audio/mpeg', 'audio/wav', 'audio/ogg'] },
   { label: 'SVG', mimes: ['image/svg+xml'] },
   { label: 'Interactive', mimes: ['application/x-directory'] },
+  { label: '3D', mimes: MODEL_MIMES },
   { label: 'PDF', mimes: ['application/pdf'] },
   { label: 'Text', mimes: ['text/plain', 'text/markdown'] },
 ]
@@ -411,6 +414,26 @@ function Carousel({ tokens, filters }) {
                 label="AUDIO"
                 still={<PosterStill token={token} label="Audio" />}
                 live={<AudioScope token={token} />}
+              />
+            </Link>
+          ) : MODEL_MIMES.includes(token.mime_type) && token.display_uri ? (
+            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
+              <HoverThumb
+                label="3D"
+                still={<PosterStill token={token} label="3D" />}
+                live={
+                  // React 18 can't set `class` on custom elements; style the wrapper.
+                  <div className={`${styles.hover_live} ${styles.model_live}`}>
+                    <model-viewer
+                      src={HashToURL(token.artifact_uri)}
+                      auto-rotate=""
+                      auto-rotate-delay="0"
+                      rotation-per-second="60deg"
+                      interaction-prompt="none"
+                      disable-zoom=""
+                    />
+                  </div>
+                }
               />
             </Link>
           ) : TEXT_MIMES.includes(token.mime_type) && token.artifact_uri ? (

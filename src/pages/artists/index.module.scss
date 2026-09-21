@@ -278,15 +278,33 @@
 .hover_wrap {
   position: relative;
   display: block;
+  overflow: hidden;
 }
 
-// Animated original (GIF or video), shown over the still frame while hovered.
+// Animated original (GIF, video, 3D model), shown over the still frame while
+// hovered.
 .hover_live {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: transparent;
+  pointer-events: none;
+
+  model-viewer {
+    width: 100%;
+    height: 100%;
+    // Global media-type styles set min-height: 55vh on model-viewer.
+    min-height: 0;
+    margin: 0;
+    background: transparent;
+  }
+}
+
+// 3D model renders transparent, so hide the cover behind it.
+.model_live {
+  background: var(--background-color);
 }
 
 // Live audio scope drawn over the cover while hovered.
