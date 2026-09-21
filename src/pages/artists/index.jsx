@@ -305,6 +305,9 @@ export default function ArtistsPage() {
                     artist.card?.show ??
                     DEFAULT_SHOW
                   }
+                  tags={
+                    readDraft(artist.address)?.tags ?? artist.card?.tags ?? []
+                  }
                   hazardFilters={hazardFilters}
                   marketFilter={marketFilter}
                 />

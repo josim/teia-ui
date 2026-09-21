@@ -93,8 +93,77 @@ function GifThumb({ token, fallback }) {
     // re-render never refetches the frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token.token_id])
+  // Hover plays the real GIF. Only mounted while hovered, so at most one full
+  // animated GIF is decoded at a time.
+  const [hover, setHover] = useState(false)
   if (failed) return fallback
-  return <canvas ref={ref} className={styles.thumb} title={token.name} />
+  return (
+    <div
+      className={styles.gif_wrap}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <canvas ref={ref} className={styles.thumb} title={token.name} />
+      {hover && (
+        <img
+          className={styles.gif_live}
+          src={HashToURL(token.display_uri)}
+          alt={token.name}
+        />
+      )}
+      {/* Single frame only, so flag that the original animates. */}
+      {!hover && <span className={styles.gif_badge}>GIF</span>}
+    </div>
+  )
+}
+
+const TEXT_MIMES = ['text/plain', 'text/markdown']
+// Enough for a few lines; the tile clamps whatever fits anyway.
+const TEXT_HEAD_BYTES = 2048
+
+// Rough markdown → plain text for a tiny excerpt.
+function stripMarkdown(md) {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // links → text
+    .replace(/<[^>]+>/g, '') // html
+    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '') // headings, quotes, lists
+    .replace(/[*_~`]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function TextThumb({ token, fallback }) {
+  const [text, setText] = useState(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let alive = true
+    fetch(HashToURL(token.artifact_uri), {
+      headers: { Range: `bytes=0-${TEXT_HEAD_BYTES - 1}` },
+    })
+      .then((r) => r.text())
+      .then((t) => {
+        if (!alive) return
+        const plain = stripMarkdown(t)
+        // Posts usually open with the title as an H1; the tile shows it once.
+        setText(
+          plain.startsWith(token.name)
+            ? plain.slice(token.name.length).trim()
+            : plain
+        )
+      })
+      .catch(() => alive && setFailed(true))
+    return () => {
+      alive = false
+    }
+  }, [token])
+  if (failed) return fallback
+  return (
+    <div className={styles.text_tile} title={token.name}>
+      <strong>{token.name}</strong>
+      <p>{text}</p>
+    </div>
+  )
 }
 
 export const FILETYPES = [
@@ -174,6 +243,13 @@ function Carousel({ tokens, filters }) {
                 fallback={<div className={styles.hidden_tile}>GIF</div>}
               />
             </Link>
+          ) : TEXT_MIMES.includes(token.mime_type) && token.artifact_uri ? (
+            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
+              <TextThumb
+                token={token}
+                fallback={<div className={styles.hidden_tile}>Text</div>}
+              />
+            </Link>
           ) : (
             <Link
               key={token.token_id}
@@ -232,6 +308,22 @@ export const CARD_FIELDS = [
 ]
 export const DEFAULT_SHOW = ['bio']
 
+// Free-text tags an artist adds to their own card (`card.tags`). Kept small
+// so they read as chips, not a bio.
+export const MAX_TAGS = 6
+export const MAX_TAG_LENGTH = 20
+export function parseTags(input) {
+  return [
+    ...new Set(
+      input
+        .split(',')
+        .map((t) => t.trim().replace(/^#/, '').toLowerCase())
+        .filter(Boolean)
+        .map((t) => t.slice(0, MAX_TAG_LENGTH))
+    ),
+  ].slice(0, MAX_TAGS)
+}
+
 // Local draft of an artist's card config until the on-chain write lands.
 export const draftKey = (address) => `artist-card:${address}`
 export function readDraft(address) {
@@ -258,12 +350,14 @@ function useBluesky(address, enabled) {
 
 /**
  * One artist card. `extras` is the batched TzKT / Tezos Domains / DAO data
- * for this address (see useArtistExtras); `show` lists CARD_FIELDS keys.
+ * for this address (see useArtistExtras); `show` lists CARD_FIELDS keys;
+ * `tags` are the artist's own free-text chips.
  */
 export default function ArtistCard({
   artist,
   extras = {},
   show = DEFAULT_SHOW,
+  tags = [],
   hazardFilters = [],
   marketFilter = () => true,
 }) {
@@ -332,6 +426,15 @@ export default function ArtistCard({
           <p className={styles.description}>
             {on('bio') ? artist.description : ''}
           </p>
+          {tags.length > 0 && (
+            <div className={styles.tags}>
+              {tags.map((t) => (
+                <span key={t} className={styles.chip}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
           {(links.length > 0 || facts.length > 0) && (
             <div className={styles.meta}>
               {links.map((l) =>

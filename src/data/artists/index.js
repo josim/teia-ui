@@ -74,6 +74,7 @@ function buildArtistPreviewsQuery(addresses) {
         token_id
         name
         display_uri
+        artifact_uri
         mime_type
         formats
         listings(where: { status: { _eq: "active" } }) {
