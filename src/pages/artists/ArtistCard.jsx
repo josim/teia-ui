@@ -97,6 +97,208 @@ function GifThumb({ token, fallback }) {
   return <canvas ref={ref} className={styles.thumb} title={token.name} />
 }
 
+// Still frame with a type badge; hover swaps in `live` (the animated GIF or
+// muted video). `live` is only mounted while hovered, so at most one full
+// animation is decoded at a time.
+function HoverThumb({ label, still, live }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <div
+      className={styles.hover_wrap}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {still}
+      {hover && live}
+      {!hover && <span className={styles.hover_badge}>{label}</span>}
+    </div>
+  )
+}
+
+const VIDEO_MIMES = ['video/mp4', 'video/quicktime', 'video/webm']
+const AUDIO_MIMES = ['audio/mpeg', 'audio/wav', 'audio/ogg']
+
+// Video/audio poster (display_uri) is often itself a GIF; those go through
+// the same first-frame path as GIF tokens, the rest through imgproxy.
+function PosterStill({ token, label }) {
+  const posterMime = token.formats?.find(
+    (f) => f.uri === token.display_uri
+  )?.mime_type
+  if (posterMime === 'image/gif') {
+    return (
+      <GifThumb
+        token={token}
+        fallback={<div className={styles.hidden_tile}>{label}</div>}
+      />
+    )
+  }
+  return (
+    <img
+      className={styles.thumb}
+      src={thumbUrl(token)}
+      alt={token.name}
+      loading="lazy"
+    />
+  )
+}
+
+// One AudioContext for every tile; browsers cap how many can exist.
+let audioCtx
+function getAudioCtx() {
+  audioCtx ??= new AudioContext()
+  return audioCtx
+}
+
+// Hover preview for audio: streams the track through an analyser at zero
+// gain and draws a live scope over the cover. Click the speaker to unmute.
+// Browsers keep the AudioContext suspended until the page has had a click,
+// so before that the hover shows the cover only; the speaker click counts.
+function AudioScope({ token }) {
+  const canvasRef = useRef(null)
+  const gainRef = useRef(null)
+  const audioRef = useRef(null)
+  const [muted, setMuted] = useState(true)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx = getAudioCtx()
+    const audio = new Audio()
+    audio.crossOrigin = 'anonymous'
+    audio.loop = true
+    audio.src = HashToURL(token.artifact_uri)
+    audioRef.current = audio
+
+    const source = ctx.createMediaElementSource(audio)
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 512
+    const gain = ctx.createGain()
+    gain.gain.value = 0
+    gainRef.current = gain
+    source.connect(analyser)
+    analyser.connect(gain)
+    gain.connect(ctx.destination)
+
+    const data = new Float32Array(analyser.fftSize)
+    // Each point eases toward the live sample with a 0.25s time constant, so
+    // the trace decays instead of jittering frame to frame.
+    const SCOPE_DECAY_S = 0.25
+    const smoothed = new Float32Array(analyser.fftSize)
+    const c2d = canvas.getContext('2d')
+    let raf
+    let last = performance.now()
+    const draw = (now) => {
+      analyser.getFloatTimeDomainData(data)
+      const alpha = 1 - Math.exp(-(now - last) / 1000 / SCOPE_DECAY_S)
+      last = now
+      const { width, height } = canvas
+      c2d.clearRect(0, 0, width, height)
+      c2d.beginPath()
+      for (let i = 0; i < data.length; i++) {
+        smoothed[i] += (data[i] - smoothed[i]) * alpha
+        const x = (i / (data.length - 1)) * width
+        const y = (0.5 - smoothed[i] / 2) * height
+        i ? c2d.lineTo(x, y) : c2d.moveTo(x, y)
+      }
+      c2d.strokeStyle = '#fff'
+      c2d.lineWidth = 2
+      c2d.lineJoin = 'round'
+      c2d.stroke()
+      raf = requestAnimationFrame(draw)
+    }
+
+    ctx.resume().catch(() => {})
+    audio.play().catch(() => {}) // blocked until the page has had a click
+    raf = requestAnimationFrame(draw)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      audio.pause()
+      audio.src = ''
+      source.disconnect()
+      analyser.disconnect()
+      gain.disconnect()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token.token_id])
+
+  const toggleMute = (e) => {
+    e.preventDefault() // inside the tile's <Link>
+    e.stopPropagation()
+    getAudioCtx().resume()
+    audioRef.current.play().catch(() => {}) // click is the gesture hover lacked
+    gainRef.current.gain.value = muted ? 1 : 0
+    setMuted(!muted)
+  }
+
+  return (
+    <>
+      <canvas
+        ref={canvasRef}
+        className={styles.scope}
+        width={200}
+        height={200}
+      />
+      <button
+        type="button"
+        className={styles.scope_mute}
+        onClick={toggleMute}
+        aria-label={muted ? 'Unmute' : 'Mute'}
+      >
+        {muted ? '🔇' : '🔊'}
+      </button>
+    </>
+  )
+}
+
+const TEXT_MIMES = ['text/plain', 'text/markdown']
+// Enough for a few lines; the tile clamps whatever fits anyway.
+const TEXT_HEAD_BYTES = 2048
+
+// Rough markdown → plain text for a tiny excerpt.
+function stripMarkdown(md) {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // links → text
+    .replace(/<[^>]+>/g, '') // html
+    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '') // headings, quotes, lists
+    .replace(/[*_~`]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function TextThumb({ token, fallback }) {
+  const [text, setText] = useState(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let alive = true
+    fetch(HashToURL(token.artifact_uri), {
+      headers: { Range: `bytes=0-${TEXT_HEAD_BYTES - 1}` },
+    })
+      .then((r) => r.text())
+      .then((t) => {
+        if (!alive) return
+        const plain = stripMarkdown(t)
+        // Posts usually open with the title as an H1; the tile shows it once.
+        setText(
+          plain.startsWith(token.name)
+            ? plain.slice(token.name.length).trim()
+            : plain
+        )
+      })
+      .catch(() => alive && setFailed(true))
+    return () => {
+      alive = false
+    }
+  }, [token])
+  if (failed) return fallback
+  return (
+    <div className={styles.text_tile} title={token.name}>
+      <strong>{token.name}</strong>
+      <p>{text}</p>
+    </div>
+  )
+}
+
 export const FILETYPES = [
   { label: 'Image', mimes: ARTIST_IMAGE_MIMES },
   { label: 'GIF', mimes: ['image/gif'] },
@@ -169,9 +371,53 @@ function Carousel({ tokens, filters }) {
             </Link>
           ) : token.mime_type === 'image/gif' ? (
             <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
-              <GifThumb
+              <HoverThumb
+                label="GIF"
+                still={
+                  <GifThumb
+                    token={token}
+                    fallback={<div className={styles.hidden_tile}>GIF</div>}
+                  />
+                }
+                live={
+                  <img
+                    className={styles.hover_live}
+                    src={HashToURL(token.display_uri)}
+                    alt={token.name}
+                  />
+                }
+              />
+            </Link>
+          ) : VIDEO_MIMES.includes(token.mime_type) && token.display_uri ? (
+            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
+              <HoverThumb
+                label="VIDEO"
+                still={<PosterStill token={token} label="Video" />}
+                live={
+                  <video
+                    className={styles.hover_live}
+                    src={HashToURL(token.artifact_uri)}
+                    muted
+                    autoPlay
+                    loop
+                    playsInline
+                  />
+                }
+              />
+            </Link>
+          ) : AUDIO_MIMES.includes(token.mime_type) && token.display_uri ? (
+            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
+              <HoverThumb
+                label="AUDIO"
+                still={<PosterStill token={token} label="Audio" />}
+                live={<AudioScope token={token} />}
+              />
+            </Link>
+          ) : TEXT_MIMES.includes(token.mime_type) && token.artifact_uri ? (
+            <Link key={token.token_id} to={`/objkt/${token.token_id}`}>
+              <TextThumb
                 token={token}
-                fallback={<div className={styles.hidden_tile}>GIF</div>}
+                fallback={<div className={styles.hidden_tile}>Text</div>}
               />
             </Link>
           ) : (
@@ -232,6 +478,22 @@ export const CARD_FIELDS = [
 ]
 export const DEFAULT_SHOW = ['bio']
 
+// Free-text tags an artist adds to their own card (`card.tags`). Kept small
+// so they read as chips, not a bio.
+export const MAX_TAGS = 6
+export const MAX_TAG_LENGTH = 20
+export function parseTags(input) {
+  return [
+    ...new Set(
+      input
+        .split(',')
+        .map((t) => t.trim().replace(/^#/, '').toLowerCase())
+        .filter(Boolean)
+        .map((t) => t.slice(0, MAX_TAG_LENGTH))
+    ),
+  ].slice(0, MAX_TAGS)
+}
+
 // Local draft of an artist's card config until the on-chain write lands.
 export const draftKey = (address) => `artist-card:${address}`
 export function readDraft(address) {
@@ -258,12 +520,14 @@ function useBluesky(address, enabled) {
 
 /**
  * One artist card. `extras` is the batched TzKT / Tezos Domains / DAO data
- * for this address (see useArtistExtras); `show` lists CARD_FIELDS keys.
+ * for this address (see useArtistExtras); `show` lists CARD_FIELDS keys;
+ * `tags` are the artist's own free-text chips.
  */
 export default function ArtistCard({
   artist,
   extras = {},
   show = DEFAULT_SHOW,
+  tags = [],
   hazardFilters = [],
   marketFilter = () => true,
 }) {
@@ -332,6 +596,15 @@ export default function ArtistCard({
           <p className={styles.description}>
             {on('bio') ? artist.description : ''}
           </p>
+          {tags.length > 0 && (
+            <div className={styles.tags}>
+              {tags.map((t) => (
+                <span key={t} className={styles.chip}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
           {(links.length > 0 || facts.length > 0) && (
             <div className={styles.meta}>
               {links.map((l) =>

@@ -12,7 +12,9 @@ import { useArtistExtras, useArtistPreviews } from '@data/artists'
 import ArtistCard, {
   CARD_FIELDS,
   DEFAULT_SHOW,
+  MAX_TAGS,
   draftKey,
+  parseTags,
   readDraft,
 } from './ArtistCard'
 import styles from './index.module.scss'
@@ -32,6 +34,9 @@ export default function ConfigureArtistCard() {
   const { data: tokens } = useArtistPreviews(address)
 
   const [show, setShow] = useState(null)
+  // Raw comma-separated input; parseTags() normalises it for the card/draft.
+  const [tagInput, setTagInput] = useState('')
+  const [tagLimitHit, setTagLimitHit] = useState(false)
   const [saved, setSaved] = useState(false)
 
   // What this artist actually has linked, so each checkbox can warn when
@@ -59,11 +64,10 @@ export default function ConfigureArtistCard() {
   }
   useEffect(() => {
     if (!address) return
-    setShow(
-      readDraft(address)?.show ??
-        user.metadata?.data?.card?.show ??
-        DEFAULT_SHOW
-    )
+    const draft = readDraft(address)
+    const card = user.metadata?.data?.card
+    setShow(draft?.show ?? card?.show ?? DEFAULT_SHOW)
+    setTagInput((draft?.tags ?? card?.tags ?? []).join(', '))
   }, [address, user])
 
   if (error) return <Page title="Customize card">User not found.</Page>
@@ -80,8 +84,18 @@ export default function ConfigureArtistCard() {
     setSaved(false)
     setShow((s) => (s.includes(key) ? s.filter((k) => k !== key) : [...s, key]))
   }
+  const tags = parseTags(tagInput)
+  const countTags = (s) => s.split(',').filter((t) => t.trim()).length
+  const onTagInput = (e) => {
+    const next = e.target.value
+    // Hard limit: refuse the change instead of silently dropping extras.
+    if (countTags(next) > MAX_TAGS) return setTagLimitHit(true)
+    setTagLimitHit(false)
+    setSaved(false)
+    setTagInput(next)
+  }
   const saveDraft = () => {
-    localStorage.setItem(draftKey(address), JSON.stringify({ show }))
+    localStorage.setItem(draftKey(address), JSON.stringify({ show, tags }))
     setSaved(true)
   }
 
@@ -110,6 +124,20 @@ export default function ConfigureArtistCard() {
                   )}
                 </div>
               ))}
+              <label className={styles.configure_tags}>
+                <span>Tags (up to {MAX_TAGS}, comma separated)</span>
+                <input
+                  className={styles.tag_input}
+                  value={tagInput}
+                  onChange={onTagInput}
+                  placeholder="e.g. glitch, photography, 3d"
+                />
+                {tagLimitHit && (
+                  <span className={styles.configure_error}>
+                    Maximum {MAX_TAGS} tags
+                  </span>
+                )}
+              </label>
               <div className={styles.configure_actions}>
                 <Button shadow_box onClick={saveDraft}>
                   {saved ? 'Saved' : 'Save draft'}
@@ -128,6 +156,7 @@ export default function ConfigureArtistCard() {
                 artist={artist}
                 extras={extras?.[address]}
                 show={show}
+                tags={tags}
               />
             </div>
           </div>
