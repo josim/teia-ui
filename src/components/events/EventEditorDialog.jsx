@@ -78,16 +78,19 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
       : normalizeUrl(draft.link)
   const textColor = getBannerTextColor(draft.bannerColor)
 
+  useEffect(() => {
+    if (!expanded) return
+    setPreviewState(validLink ? 'loading' : 'idle')
+  }, [expanded, validLink])
+
   const update = (field) => (eventValue) => {
     setDraft((current) => ({ ...current, [field]: eventValue }))
-    if (field === 'link' || field === 'searchTerm') setPreviewState('idle')
   }
 
   const openPreview = () => {
     if (!validLink) return
     setExpanded(true)
     setHasPreviewed(true)
-    setPreviewState('loading')
   }
 
   const save = (submitEvent) => {
@@ -295,6 +298,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
               </div>
               {validLink ? (
                 <iframe
+                  key={validLink}
                   src={validLink}
                   title={`${draft.title || 'Event'} website preview`}
                   className={styles.iframe}
