@@ -105,6 +105,7 @@ function HoverThumb({ label, still, live }) {
   return (
     <div
       className={styles.hover_wrap}
+      data-tour="media"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
@@ -576,7 +577,7 @@ export default function ArtistCard({
   ].filter(Boolean)
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} data-tour="card">
       <div className={styles.header}>
         <Identicon
           className={styles.identicon}

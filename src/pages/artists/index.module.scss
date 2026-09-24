@@ -59,6 +59,7 @@
   top: 50%;
   transform: translateY(-50%);
   display: flex;
+  align-items: center;
   gap: 0.75rem;
 
   button {
@@ -574,6 +575,7 @@
 .header_actions {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .tour_help {
@@ -582,7 +584,6 @@
   justify-content: center;
   width: 1.4em;
   height: 1.4em;
-  margin-left: 0.5em;
   border: 1px solid currentColor;
   border-radius: 50%;
   font-size: var(--font-size-small, 0.8rem);

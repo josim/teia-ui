@@ -54,6 +54,22 @@ function toBoolExp(f) {
 }
 
 const DIRECTORY_TOUR = [
+  { target: 'search', text: 'Search artists by name.' },
+  {
+    target: 'filters',
+    text: 'Narrow by year, license, market, file type and more.',
+  },
+  {
+    target: 'card',
+    text: 'Each card shows an artist and their latest creations.',
+  },
+  {
+    target: 'media',
+    text: 'Items tagged GIF, VIDEO or AUDIO preview on hover.',
+  },
+]
+
+const CUSTOMIZE_TOUR = [
   {
     target: 'customize',
     text: 'Click "Customize my card" to choose what shows on your card.',
@@ -89,7 +105,7 @@ export default function ArtistsPage() {
   const current = history[history.length - 1]
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState(EMPTY_FILTERS)
-  const touring = useSearchParams()[0].has('tour')
+  const touring = useSearchParams()[0].get('tour') === 'customize'
   const [showFilters, setShowFilters] = useState(false)
   const [applied, setApplied] = useState({ search: '', filters: {} })
   useEffect(() => {
@@ -197,7 +213,8 @@ export default function ArtistsPage() {
 
   return (
     <Page title="Artists">
-      <CardTour steps={DIRECTORY_TOUR} />
+      <CardTour name="directory" steps={DIRECTORY_TOUR} />
+      <CardTour name="customize" steps={CUSTOMIZE_TOUR} />
       <Container>
         <div className={styles.page}>
           <div className={styles.header_row}>
@@ -214,43 +231,60 @@ export default function ArtistsPage() {
                   shadow_box
                   small
                   to={`/artist-directory/configure/malicioussheep${
-                    touring ? '?tour' : ''
+                    touring ? '?tour=customize' : ''
                   }`}
                 >
                   Customize my card
                 </Button>
               </span>
               <Link
-                to="?tour"
+                to="?tour=customize"
                 className={styles.tour_help}
-                title="How it works"
-                aria-label="How it works"
+                title="How to customize your card"
+                aria-label="How to customize your card"
               >
                 ?
               </Link>
             </div>
           </div>
 
-          <Input
-            className={styles.search}
-            name="artist-search"
-            value={search}
-            onChange={setSearch}
-            placeholder="Search artists by name"
-            label="Search"
-          >
-            <div className={styles.search_actions}>
-              {activeCount > 0 && (
-                <button type="button" onClick={() => setFilters(EMPTY_FILTERS)}>
-                  Clear
+          <div data-tour="search">
+            <Input
+              className={styles.search}
+              name="artist-search"
+              value={search}
+              onChange={setSearch}
+              placeholder="Search artists by name"
+              label="Search"
+            >
+              <div className={styles.search_actions}>
+                {activeCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFilters(EMPTY_FILTERS)}
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  type="button"
+                  data-tour="filters"
+                  onClick={() => setShowFilters((v) => !v)}
+                >
+                  {showFilters ? '▴' : '▾'} Filters
+                  {activeCount ? ` (${activeCount})` : ''}
                 </button>
-              )}
-              <button type="button" onClick={() => setShowFilters((v) => !v)}>
-                {showFilters ? '▴' : '▾'} Filters
-                {activeCount ? ` (${activeCount})` : ''}
-              </button>
-            </div>
-          </Input>
+                <Link
+                  to="?tour=directory"
+                  className={styles.tour_help}
+                  title="How it works"
+                  aria-label="How it works"
+                >
+                  ?
+                </Link>
+              </div>
+            </Input>
+          </div>
           {showFilters && (
             <div className={styles.filters}>
               <div className={styles.filter_row}>

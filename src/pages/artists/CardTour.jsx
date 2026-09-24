@@ -6,22 +6,36 @@ import styles from './index.module.scss'
 const PAD = 4 // spotlight outline sits this far outside the target
 
 /**
- * Walkthrough rendered over the page while the URL has `?tour`. Each step
- * highlights the element marked `data-tour="<target>"`. A step without
- * `next` waits for the user to act (e.g. click a link that keeps `?tour`).
- * `align: 'right'` lines the popover's right edge up with the target's.
+ * Walkthrough rendered over the page while the URL has `?tour=<name>`. Each
+ * step highlights the element marked `data-tour="<target>"`. A step with
+ * `next: false` waits for the user to act (e.g. click a link that keeps
+ * `?tour=<name>`). `align: 'right'` lines the popover's right edge up with
+ * the target's.
  */
-export default function CardTour({ steps }) {
+export default function CardTour({ name, steps }) {
   const [params, setParams] = useSearchParams()
   const [i, setI] = useState(0)
   const [rect, setRect] = useState(null)
-  const active = params.has('tour')
+  const active = params.get('tour') === name
   const step = steps[i]
 
+  const end = () => {
+    params.delete('tour')
+    setParams(params)
+    setI(0)
+  }
+
   useEffect(() => {
-    if (!active) return
+    if (!active) return setI(0)
     const el = document.querySelector(`[data-tour="${step.target}"]`)
-    if (!el) return
+    // Target not on the page (e.g. no previewable items): skip the step,
+    // or finish if it was the last one.
+    if (!el) {
+      setRect(null)
+      if (i < steps.length - 1) setI(i + 1)
+      else end()
+      return
+    }
     el.scrollIntoView({ block: 'center' })
     const measure = () => setRect(el.getBoundingClientRect())
     measure()
@@ -31,15 +45,11 @@ export default function CardTour({ steps }) {
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step])
 
   if (!active || !rect) return null
 
-  const end = () => {
-    params.delete('tour')
-    setParams(params)
-    setI(0)
-  }
   const last = i === steps.length - 1 && step.next !== false
 
   return (

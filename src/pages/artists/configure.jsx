@@ -115,7 +115,7 @@ export default function ConfigureArtistCard() {
 
   return (
     <Page title="Customize card">
-      <CardTour steps={CONFIGURE_TOUR} />
+      <CardTour name="customize" steps={CONFIGURE_TOUR} />
       <Container>
         <div className={styles.page}>
           <h1 className={styles.heading}>Customize my card</h1>
