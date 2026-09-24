@@ -245,9 +245,9 @@ const router = createBrowserRouter(
           <Route path="baker" element={<Baker />} />
         </Route>
         <Route path="bakers" element={<BakersPage />} />
-        <Route path="artists" element={<ArtistsPage />} />
+        <Route path="artist-directory" element={<ArtistsPage />} />
         <Route
-          path="artists/configure/:name"
+          path="artist-directory/configure/:name"
           element={<ConfigureArtistCard />}
         />
         <Route path="baker/:address" element={<BakerPage />} />
