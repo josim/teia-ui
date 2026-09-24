@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Tour from '@components/tour'
 import styles from './index.module.scss'
 
 const DEFAULT_COLOR = '#f0f0f0'
@@ -30,6 +31,44 @@ function normalizeUrl(value) {
     return ''
   }
 }
+
+// Tour steps for `?tour=events`, one list per form state: the page swaps
+// layouts when the preview opens, so each layout runs its own list.
+const FORM_TOUR = [
+  { target: 'event-title', text: 'Give your event a title.' },
+  { target: 'event-subtitle', text: 'Add a short subtitle.' },
+  { target: 'event-description', text: 'Describe what the event is about.' },
+  {
+    target: 'event-link',
+    text: 'Link a website, or pick "Teia search" to link a search term.',
+  },
+  {
+    target: 'event-screenshot',
+    text: 'Optionally add a screenshot URL for the event card.',
+  },
+  {
+    target: 'event-open-preview',
+    text: 'Click "Open preview" to see your event and pick a banner color.',
+    next: false,
+    align: 'right',
+  },
+]
+const PREVIEW_TOUR = [
+  {
+    target: 'event-color',
+    text: 'Pick a banner color that suits the site.',
+  },
+  {
+    target: 'event-preview',
+    text: 'This banner is how your event will look, above its site.',
+  },
+  {
+    target: 'event-submit',
+    text: 'Submit when it looks right.',
+    align: 'right',
+    above: true,
+  },
+]
 
 const TEIA_SEARCH_URL = 'https://teia.art/search?term='
 
@@ -102,7 +141,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
 
   const textFields = (
     <>
-      <label className={styles.field}>
+      <label className={styles.field} data-tour="event-title">
         <span>Title</span>
         <input
           value={draft.title}
@@ -111,7 +150,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
           required
         />
       </label>
-      <label className={styles.field}>
+      <label className={styles.field} data-tour="event-subtitle">
         <span>Subtitle</span>
         <textarea
           value={draft.subtitle}
@@ -120,7 +159,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
           rows={3}
         />
       </label>
-      <label className={styles.field}>
+      <label className={styles.field} data-tour="event-description">
         <span>Description</span>
         <textarea
           value={draft.description}
@@ -130,7 +169,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
         />
       </label>
       {hasPreviewed && (
-        <label className={styles.color_field}>
+        <label className={styles.color_field} data-tour="event-color">
           <span>Banner Color</span>
           <input
             type="color"
@@ -140,7 +179,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
           />
         </label>
       )}
-      <div className={styles.field}>
+      <div className={styles.field} data-tour="event-link">
         <div className={styles.link_mode}>
           <span>Link</span>
           <div className={styles.switcher} role="group" aria-label="Link type">
@@ -188,7 +227,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
           validLink && <span className={styles.link_preview}>{validLink}</span>
         )}
       </div>
-      <label className={styles.field}>
+      <label className={styles.field} data-tour="event-screenshot">
         <span>Screenshot URL</span>
         <input
           type="url"
@@ -212,6 +251,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
       <form className={styles.dialog_panel} onSubmit={save}>
         {!expanded ? (
           <>
+            <Tour name="events" steps={FORM_TOUR} />
             <div className={styles.dialog_header}>
               <h2 className={styles.dialog_title}>Event Form</h2>
               <button
@@ -234,6 +274,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
                 </button>
                 <button
                   type="button"
+                  data-tour="event-open-preview"
                   onClick={openPreview}
                   disabled={!validLink}
                 >
@@ -244,6 +285,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
           </>
         ) : (
           <div className={styles.expanded_layout}>
+            <Tour name="events" steps={PREVIEW_TOUR} />
             <aside className={styles.sidebar}>
               <div className={styles.sidebar_header}>
                 <h2 className={styles.dialog_title}>Event details</h2>
@@ -264,6 +306,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
                 </button>
                 <button
                   type="submit"
+                  data-tour="event-submit"
                   disabled={!draft.title.trim() || !validLink}
                 >
                   Submit Event
@@ -273,6 +316,7 @@ export default function EventEditorDialog({ event, onClose, onSave }) {
             <div className={styles.preview_pane}>
               <div
                 className={styles.dialog_header}
+                data-tour="event-preview"
                 style={{ backgroundColor: draft.bannerColor, color: textColor }}
               >
                 <div className={styles.dialog_summary}>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { CloseIcon } from '@icons'
 import styles from './index.module.scss'
 
@@ -10,9 +10,9 @@ const PAD = 4 // spotlight outline sits this far outside the target
  * step highlights the element marked `data-tour="<target>"`. A step with
  * `next: false` waits for the user to act (e.g. click a link that keeps
  * `?tour=<name>`). `align: 'right'` lines the popover's right edge up with
- * the target's.
+ * the target's; `above: true` places it above the target instead of below.
  */
-export default function CardTour({ name, steps }) {
+export default function Tour({ name, steps }) {
   const [params, setParams] = useSearchParams()
   const [i, setI] = useState(0)
   const [rect, setRect] = useState(null)
@@ -36,12 +36,17 @@ export default function CardTour({ name, steps }) {
       else end()
       return
     }
-    el.scrollIntoView({ block: 'center' })
     const measure = () => setRect(el.getBoundingClientRect())
-    measure()
+    // Wait a frame: a parent may still be about to show the target (e.g. a
+    // dialog calling showModal() in its own effect, which runs after ours).
+    const frame = requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'center' })
+      measure()
+    })
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
     return () => {
+      cancelAnimationFrame(frame)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }
@@ -55,7 +60,7 @@ export default function CardTour({ name, steps }) {
   return (
     <>
       <div
-        className={styles.tour_spot}
+        className={styles.spot}
         style={{
           top: rect.top - PAD,
           left: rect.left - PAD,
@@ -64,37 +69,40 @@ export default function CardTour({ name, steps }) {
         }}
       />
       <div
-        className={`${styles.tour_pop} ${
-          step.align === 'right' ? styles.tour_pop_right : ''
-        }`}
-        style={
-          step.align === 'right'
+        className={`${styles.pop} ${
+          step.align === 'right' ? styles.pop_right : ''
+        } ${step.above ? styles.pop_above : ''}`}
+        style={{
+          ...(step.above
             ? {
-                top: rect.bottom + 12,
+                bottom: document.documentElement.clientHeight - rect.top + 12,
+              }
+            : { top: rect.bottom + 12 }),
+          ...(step.align === 'right'
+            ? {
                 right: Math.max(
                   16,
                   document.documentElement.clientWidth - rect.right - PAD
                 ),
               }
             : {
-                top: rect.bottom + 12,
                 left: Math.max(
                   16,
                   Math.min(rect.left - PAD, window.innerWidth - 296)
                 ),
-              }
-        }
+              }),
+        }}
       >
         <button
           type="button"
-          className={styles.tour_close}
+          className={styles.close}
           onClick={end}
           aria-label="Close tour"
         >
           <CloseIcon fill="var(--text-color)" width="10" />
         </button>
         <p>{step.text}</p>
-        <div className={styles.tour_actions}>
+        <div className={styles.actions}>
           {i > 0 && (
             <button type="button" onClick={() => setI(i - 1)}>
               Back
@@ -113,5 +121,19 @@ export default function CardTour({ name, steps }) {
         </div>
       </div>
     </>
+  )
+}
+
+/** Circled "?" that starts the tour called `name`. */
+export function TourLink({ name, title = 'How it works' }) {
+  return (
+    <Link
+      to={`?tour=${name}`}
+      className={styles.help}
+      title={title}
+      aria-label={title}
+    >
+      ?
+    </Link>
   )
 }

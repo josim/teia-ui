@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Page } from '@atoms/layout'
 import { Loading } from '@atoms/loading'
 import EventEditorDialog from '@components/events/EventEditorDialog'
+import Tour, { TourLink } from '@components/tour'
 import { useEvents } from '@hooks/use-events'
 import styles from './index.module.scss'
 
@@ -16,6 +18,17 @@ function getBannerTextColor(hex) {
   return luminance > 0.6 ? '#191919' : '#ffffff'
 }
 
+// The form's own steps live in EventEditorDialog (it opens as a modal, above
+// anything rendered here).
+const EVENTS_TOUR = [
+  {
+    target: 'add-event',
+    text: 'Click "+ Add event" to open the event form.',
+    next: false,
+    align: 'right',
+  },
+]
+
 /**
  * Events page backed by the normalized GET /events feed. The request is
  * currently mocked in the data layer while the backend endpoint is developed.
@@ -26,6 +39,7 @@ export default function Events() {
   const [localEvents, setLocalEvents] = useState([])
   const dialogRef = useRef(null)
   const { events, error, isLoading } = useEvents()
+  const [params, setParams] = useSearchParams()
 
   useEffect(() => {
     setLocalEvents(events)
@@ -58,17 +72,30 @@ export default function Events() {
       return current.map((item, index) => (index === existing ? event : item))
     })
     setEditingEvent(null)
+    // Submitting finishes the add-event tour.
+    if (params.get('tour') === 'events') {
+      params.delete('tour')
+      setParams(params)
+    }
   }
 
   return (
     <Page title="Events">
+      {!editingEvent && <Tour name="events" steps={EVENTS_TOUR} />}
       <div className={styles.container}>
         <header className={styles.header}>
           <div className={styles.header_top}>
             <h1 className={styles.headline}>Events</h1>
-            <button type="button" onClick={() => setEditingEvent({})}>
-              + Add event
-            </button>
+            <div className={styles.header_actions}>
+              <button
+                type="button"
+                data-tour="add-event"
+                onClick={() => setEditingEvent({})}
+              >
+                + Add event
+              </button>
+              <TourLink name="events" title="How to add an event" />
+            </div>
           </div>
           <p className={styles.intro}>
             Teia community events, initiatives, and announcements.
