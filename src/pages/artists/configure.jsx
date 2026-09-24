@@ -17,7 +17,21 @@ import ArtistCard, {
   parseTags,
   readDraft,
 } from './ArtistCard'
+import CardTour from './CardTour'
 import styles from './index.module.scss'
+
+const CONFIGURE_TOUR = [
+  { target: 'fields', text: 'Tick the fields you want on your card.' },
+  {
+    target: 'tags',
+    text: 'Add up to 6 tags, comma separated. They show as chips.',
+  },
+  { target: 'preview', text: 'Your card updates here as you go.' },
+  {
+    target: 'save',
+    text: 'Save a draft. It lives in this browser until on-chain save lands.',
+  },
+]
 
 /**
  * "Customize my card": pick which profile fields show on your artist card,
@@ -101,6 +115,7 @@ export default function ConfigureArtistCard() {
 
   return (
     <Page title="Customize card">
+      <CardTour steps={CONFIGURE_TOUR} />
       <Container>
         <div className={styles.page}>
           <h1 className={styles.heading}>Customize my card</h1>
@@ -110,21 +125,23 @@ export default function ConfigureArtistCard() {
           </p>
           <div className={styles.configure}>
             <div className={styles.configure_options}>
-              {CARD_FIELDS.map((f) => (
-                <div key={f.key} className={styles.configure_field}>
-                  <Checkbox
-                    checked={show.includes(f.key)}
-                    onCheck={() => toggle(f.key)}
-                    label={f.label}
-                  />
-                  {extras && available[f.key] === false && (
-                    <span className={styles.configure_warn}>
-                      nothing linked
-                    </span>
-                  )}
-                </div>
-              ))}
-              <label className={styles.configure_tags}>
+              <div data-tour="fields" className={styles.configure_options}>
+                {CARD_FIELDS.map((f) => (
+                  <div key={f.key} className={styles.configure_field}>
+                    <Checkbox
+                      checked={show.includes(f.key)}
+                      onCheck={() => toggle(f.key)}
+                      label={f.label}
+                    />
+                    {extras && available[f.key] === false && (
+                      <span className={styles.configure_warn}>
+                        nothing linked
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <label data-tour="tags" className={styles.configure_tags}>
                 <span>Tags (up to {MAX_TAGS}, comma separated)</span>
                 <input
                   className={styles.tag_input}
@@ -138,7 +155,7 @@ export default function ConfigureArtistCard() {
                   </span>
                 )}
               </label>
-              <div className={styles.configure_actions}>
+              <div data-tour="save" className={styles.configure_actions}>
                 <Button shadow_box onClick={saveDraft}>
                   {saved ? 'Saved' : 'Save draft'}
                 </Button>
@@ -151,7 +168,7 @@ export default function ConfigureArtistCard() {
                 it to your subjkt metadata.
               </p>
             </div>
-            <div className={styles.configure_preview}>
+            <div data-tour="preview" className={styles.configure_preview}>
               <ArtistCard
                 artist={artist}
                 extras={extras?.[address]}

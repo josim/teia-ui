@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Page, Container } from '@atoms/layout'
 import { Button } from '@atoms/button'
 import { Loading } from '@atoms/loading'
@@ -11,6 +11,7 @@ import {
   METADATA_ACCESSIBILITY_HAZARDS_PHOTOSENS,
   METADATA_CONTENT_RATING_MATURE,
 } from '@constants'
+import CardTour from './CardTour'
 import styles from './index.module.scss'
 
 const HINT_PX = 40 // full height of the scroll-for-next-page bar
@@ -52,6 +53,15 @@ function toBoolExp(f) {
   return and.length ? { _and: and } : {}
 }
 
+const DIRECTORY_TOUR = [
+  {
+    target: 'customize',
+    text: 'Click "Customize my card" to choose what shows on your card.',
+    next: false,
+    align: 'right',
+  },
+]
+
 const toggleIn = (list, item) =>
   list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 
@@ -79,6 +89,7 @@ export default function ArtistsPage() {
   const current = history[history.length - 1]
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const touring = useSearchParams()[0].has('tour')
   const [showFilters, setShowFilters] = useState(false)
   const [applied, setApplied] = useState({ search: '', filters: {} })
   useEffect(() => {
@@ -186,6 +197,7 @@ export default function ArtistsPage() {
 
   return (
     <Page title="Artists">
+      <CardTour steps={DIRECTORY_TOUR} />
       <Container>
         <div className={styles.page}>
           <div className={styles.header_row}>
@@ -196,13 +208,27 @@ export default function ArtistsPage() {
               </p>
             </div>
             {/* TODO: link to the connected wallet's subjkt once the on-chain save exists */}
-            <Button
-              shadow_box
-              small
-              to="/artist-directory/configure/malicioussheep"
-            >
-              Customize my card
-            </Button>
+            <div className={styles.header_actions}>
+              <span data-tour="customize">
+                <Button
+                  shadow_box
+                  small
+                  to={`/artist-directory/configure/malicioussheep${
+                    touring ? '?tour' : ''
+                  }`}
+                >
+                  Customize my card
+                </Button>
+              </span>
+              <Link
+                to="?tour"
+                className={styles.tour_help}
+                title="How it works"
+                aria-label="How it works"
+              >
+                ?
+              </Link>
+            </div>
           </div>
 
           <Input
