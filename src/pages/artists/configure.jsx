@@ -17,7 +17,7 @@ import ArtistCard, {
   parseTags,
   readDraft,
 } from './ArtistCard'
-import CardTour from './CardTour'
+import Tour from '@components/tour'
 import styles from './index.module.scss'
 
 const CONFIGURE_TOUR = [
@@ -115,7 +115,7 @@ export default function ConfigureArtistCard() {
 
   return (
     <Page title="Customize card">
-      <CardTour name="customize" steps={CONFIGURE_TOUR} />
+      <Tour name="customize" steps={CONFIGURE_TOUR} />
       <Container>
         <div className={styles.page}>
           <h1 className={styles.heading}>Customize my card</h1>

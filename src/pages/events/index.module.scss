@@ -16,6 +16,12 @@
   justify-content: space-between;
 }
 
+.header_actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
 .headline {
   margin: 0;
 }

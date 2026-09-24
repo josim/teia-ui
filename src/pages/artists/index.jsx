@@ -11,7 +11,7 @@ import {
   METADATA_ACCESSIBILITY_HAZARDS_PHOTOSENS,
   METADATA_CONTENT_RATING_MATURE,
 } from '@constants'
-import CardTour from './CardTour'
+import Tour, { TourLink } from '@components/tour'
 import styles from './index.module.scss'
 
 const HINT_PX = 40 // full height of the scroll-for-next-page bar
@@ -213,8 +213,8 @@ export default function ArtistsPage() {
 
   return (
     <Page title="Artists">
-      <CardTour name="directory" steps={DIRECTORY_TOUR} />
-      <CardTour name="customize" steps={CUSTOMIZE_TOUR} />
+      <Tour name="directory" steps={DIRECTORY_TOUR} />
+      <Tour name="customize" steps={CUSTOMIZE_TOUR} />
       <Container>
         <div className={styles.page}>
           <div className={styles.header_row}>
@@ -237,14 +237,7 @@ export default function ArtistsPage() {
                   Customize my card
                 </Button>
               </span>
-              <Link
-                to="?tour=customize"
-                className={styles.tour_help}
-                title="How to customize your card"
-                aria-label="How to customize your card"
-              >
-                ?
-              </Link>
+              <TourLink name="customize" title="How to customize your card" />
             </div>
           </div>
 
@@ -274,14 +267,7 @@ export default function ArtistsPage() {
                   {showFilters ? '▴' : '▾'} Filters
                   {activeCount ? ` (${activeCount})` : ''}
                 </button>
-                <Link
-                  to="?tour=directory"
-                  className={styles.tour_help}
-                  title="How it works"
-                  aria-label="How it works"
-                >
-                  ?
-                </Link>
+                <TourLink name="directory" />
               </div>
             </Input>
           </div>
