@@ -106,7 +106,7 @@ export default function ConfigureArtistCard() {
           <h1 className={styles.heading}>Customize my card</h1>
           <p className={styles.subheading}>
             Choose what shows on your card in the{' '}
-            <Link to="/artists">Artists</Link> directory.
+            <Link to="/artist-directory">Artists</Link> directory.
           </p>
           <div className={styles.configure}>
             <div className={styles.configure_options}>

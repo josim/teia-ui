@@ -196,7 +196,11 @@ export default function ArtistsPage() {
               </p>
             </div>
             {/* TODO: link to the connected wallet's subjkt once the on-chain save exists */}
-            <Button shadow_box small to="/artists/configure/malicioussheep">
+            <Button
+              shadow_box
+              small
+              to="/artist-directory/configure/malicioussheep"
+            >
               Customize my card
             </Button>
           </div>

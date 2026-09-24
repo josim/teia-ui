@@ -155,7 +155,7 @@ export const MainMenu = () => {
       title: 'Explore',
       items: [
         { label: 'Search', route: 'search' },
-        { label: 'Artists', route: 'artists' },
+        { label: 'Artist Directory', route: 'artist-directory' },
         { label: 'Activity', route: 'activity' },
         { label: 'Events', route: 'events' },
         { label: 'Text', route: 'text' },
