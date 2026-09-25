@@ -80,3 +80,9 @@
     opacity: 0.4;
   }
 }
+
+// Tabs atom left-aligns its row from tablet up; center it on the search page.
+.search_tabs > div:first-child {
+  justify-content: center;
+  align-self: center;
+}

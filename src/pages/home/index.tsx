@@ -1,17 +1,11 @@
 // TODO (mel & xat) - best way to handle filter composition?
-import { Input } from '@atoms/input'
 import { Page } from '@atoms/layout'
-import { useState, FunctionComponent } from 'react'
-import {
-  createSearchParams,
-  useNavigate,
-  useOutlet,
-  useSearchParams,
-} from 'react-router-dom'
+import { FunctionComponent } from 'react'
+import { useOutlet } from 'react-router-dom'
 import type { FeedType } from '@constants'
 import { useLocalSettings } from '@context/localSettingsStore'
 import * as FEEDS from './feeds'
-import UserSearchResults from './user-search-results'
+import Search from './search'
 
 const DefaultFeedComponent = FEEDS.RecentSalesFeed
 
@@ -43,52 +37,12 @@ export const feedComponentMap: FeedComponentMap = {
 
 export function Home({ isSearch = false }) {
   const outlet = useOutlet()
-  const [searchParams] = useSearchParams()
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('term') || '')
-  const navigate = useNavigate()
   const [startFeed] = useLocalSettings((st) => [st.startFeed])
   const FeedComponent = feedComponentMap[startFeed] || DefaultFeedComponent
 
   return (
     <Page feed={!isSearch} title="Home">
-      <>
-        {isSearch && (
-          <Input
-            type="text"
-            name="Enter a search term and press enter:"
-            onChange={(value) => {
-              setSearchTerm(value as string)
-            }}
-            placeholder="Search ↵"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                navigate(
-                  {
-                    pathname: '/search',
-                    search: createSearchParams({
-                      term: searchTerm,
-                    }).toString(),
-                  },
-                  { replace: true }
-                )
-              }
-            }}
-            value={searchTerm}
-          />
-        )}
-      </>
-      <>
-        {isSearch && searchParams.get('term') ? <UserSearchResults /> : null}
-      </>
-      {isSearch ? (
-        searchParams.get('term') ? (
-          <FEEDS.SearchFeed />
-        ) : (
-          <></>
-        )
-      ) : (
-        outlet || <FeedComponent />
-      )}
+      {isSearch ? <Search /> : outlet || <FeedComponent />}
     </Page>
   )
 }

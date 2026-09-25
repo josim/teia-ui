@@ -16,18 +16,18 @@ import styles from './index.module.scss'
 
 const HINT_PX = 40 // full height of the scroll-for-next-page bar
 
-const YEARS = Array.from(
+export const YEARS = Array.from(
   { length: new Date().getFullYear() - 2021 + 1 },
   (_, i) => 2021 + i
 )
-const LICENSES = [
+export const LICENSES = [
   { label: 'None', value: 'none' },
   { label: 'CC BY', value: 'cc-by-4.0' },
   { label: 'CC BY-NC', value: 'cc-by-nc-4.0' },
   { label: 'CC BY-SA', value: 'cc-by-sa-4.0' },
 ]
-const MARKETS = ['All', 'Primary', 'Secondary']
-const EMPTY_FILTERS = {
+export const MARKETS = ['All', 'Primary', 'Secondary']
+export const EMPTY_FILTERS = {
   types: [],
   years: [],
   licenses: [],
@@ -37,7 +37,7 @@ const EMPTY_FILTERS = {
 
 // Filter state -> Hasura tokens_bool_exp. Primary/secondary only narrows to
 // "has an active listing" here; the seller split happens client-side.
-function toBoolExp(f) {
+export function toBoolExp(f) {
   const and = []
   if (f.types.length)
     and.push({ mime_type: { _in: f.types.flatMap((t) => t.mimes) } })
@@ -78,10 +78,10 @@ const CUSTOMIZE_TOUR = [
   },
 ]
 
-const toggleIn = (list, item) =>
+export const toggleIn = (list, item) =>
   list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 
-function Chips({ options, selected, onToggle, labelOf = (o) => o }) {
+export function Chips({ options, selected, onToggle, labelOf = (o) => o }) {
   return (
     <div className={styles.chips}>
       {options.map((o) => (
@@ -94,6 +94,59 @@ function Chips({ options, selected, onToggle, labelOf = (o) => o }) {
           {labelOf(o)}
         </button>
       ))}
+    </div>
+  )
+}
+
+/** Filetype / year / license / market / tag filters (see toBoolExp). */
+export function FiltersPanel({ filters, setFilters }) {
+  const setF = (key, value) => setFilters((f) => ({ ...f, [key]: value }))
+  return (
+    <div className={styles.filters}>
+      <div className={styles.filter_row}>
+        <span className={styles.filter_label}>Filetype</span>
+        <Chips
+          options={FILETYPES}
+          selected={filters.types}
+          labelOf={(t) => t.label}
+          onToggle={(t) => setF('types', toggleIn(filters.types, t))}
+        />
+      </div>
+      <div className={styles.filter_row}>
+        <span className={styles.filter_label}>Year</span>
+        <Chips
+          options={YEARS}
+          selected={filters.years}
+          labelOf={String}
+          onToggle={(y) => setF('years', toggleIn(filters.years, y))}
+        />
+      </div>
+      <div className={styles.filter_row}>
+        <span className={styles.filter_label}>License</span>
+        <Chips
+          options={LICENSES.map((l) => l.value)}
+          selected={filters.licenses}
+          labelOf={(v) => LICENSES.find((l) => l.value === v).label}
+          onToggle={(v) => setF('licenses', toggleIn(filters.licenses, v))}
+        />
+      </div>
+      <div className={styles.filter_row}>
+        <span className={styles.filter_label}>Market</span>
+        <Chips
+          options={MARKETS}
+          selected={[filters.market]}
+          onToggle={(m) => setF('market', m)}
+        />
+      </div>
+      <div className={styles.filter_row}>
+        <span className={styles.filter_label}>Tag</span>
+        <input
+          className={styles.tag_input}
+          value={filters.tag}
+          onChange={(e) => setF('tag', e.target.value.replace(/^#/, ''))}
+          placeholder="e.g. glitch"
+        />
+      </div>
     </div>
   )
 }
@@ -124,7 +177,6 @@ export default function ArtistsPage() {
   const { data: extras } = useArtistExtras(
     data?.artists.map((a) => a.address) ?? []
   )
-  const setF = (key, value) => setFilters((f) => ({ ...f, [key]: value }))
   const activeCount =
     filters.types.length +
     filters.years.length +
@@ -272,56 +324,7 @@ export default function ArtistsPage() {
             </Input>
           </div>
           {showFilters && (
-            <div className={styles.filters}>
-              <div className={styles.filter_row}>
-                <span className={styles.filter_label}>Filetype</span>
-                <Chips
-                  options={FILETYPES}
-                  selected={filters.types}
-                  labelOf={(t) => t.label}
-                  onToggle={(t) => setF('types', toggleIn(filters.types, t))}
-                />
-              </div>
-              <div className={styles.filter_row}>
-                <span className={styles.filter_label}>Year</span>
-                <Chips
-                  options={YEARS}
-                  selected={filters.years}
-                  labelOf={String}
-                  onToggle={(y) => setF('years', toggleIn(filters.years, y))}
-                />
-              </div>
-              <div className={styles.filter_row}>
-                <span className={styles.filter_label}>License</span>
-                <Chips
-                  options={LICENSES.map((l) => l.value)}
-                  selected={filters.licenses}
-                  labelOf={(v) => LICENSES.find((l) => l.value === v).label}
-                  onToggle={(v) =>
-                    setF('licenses', toggleIn(filters.licenses, v))
-                  }
-                />
-              </div>
-              <div className={styles.filter_row}>
-                <span className={styles.filter_label}>Market</span>
-                <Chips
-                  options={MARKETS}
-                  selected={[filters.market]}
-                  onToggle={(m) => setF('market', m)}
-                />
-              </div>
-              <div className={styles.filter_row}>
-                <span className={styles.filter_label}>Tag</span>
-                <input
-                  className={styles.tag_input}
-                  value={filters.tag}
-                  onChange={(e) =>
-                    setF('tag', e.target.value.replace(/^#/, ''))
-                  }
-                  placeholder="e.g. glitch"
-                />
-              </div>
-            </div>
+            <FiltersPanel filters={filters} setFilters={setFilters} />
           )}
           <div className={styles.toggles}>
             <Checkbox

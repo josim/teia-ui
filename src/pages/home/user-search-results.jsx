@@ -1,15 +1,11 @@
-import useSWR from 'swr'
 import get from 'lodash/get'
-import uniqBy from 'lodash/uniqBy'
-import { fetchGraphQL } from '@data/api'
 import { useSearchParams, Link } from 'react-router-dom'
-import laggy from '@utils/swr-laggy-middleware'
 import styles from '@style'
 import { Identicon } from '@atoms/identicons'
 import { Line } from '@atoms/line'
-import { gql } from 'graphql-request'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useRef } from 'react'
 import { useVirtualList } from '@hooks/use-virtual-list'
+import { useUserSearch } from '@data/search'
 
 // 32px icon + 2x10px padding + 1px line; wrapped descriptions get measured.
 const ROW_ESTIMATE = 53
@@ -44,47 +40,10 @@ function SkeletonRows() {
 function UserSearchResults() {
   const [searchParams] = useSearchParams()
   const searchTerm = searchParams.get('term') || ''
-
-  const { data, isLagging } = useSWR(
-    ['subjkts-search', searchTerm],
-    async (ns, term) => {
-      const result = await fetchGraphQL(
-        gql`
-          query getSubjkts($subjkt: String!) {
-            teia_users(where: { name: { _ilike: $subjkt } }) {
-              user_address
-              name
-              metadata {
-                data
-              }
-            }
-          }
-        `,
-        'getSubjkts',
-        {
-          subjkt: `%${term}%`,
-        }
-      )
-
-      return result.data
-    },
-    {
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
-      use: [laggy],
-    }
-  )
-
-  const holders = useMemo(
-    () =>
-      uniqBy(get(data, 'teia_users') || [], ({ name }) => name).filter(
-        ({ name }) => name
-      ),
-    [data]
-  )
+  const { users: holders, isLagging } = useUserSearch(searchTerm)
 
   // laggy keeps the previous term's rows around; don't show them as results.
-  if (!data || isLagging) {
+  if (!holders || isLagging) {
     return (
       <div className={styles.container} aria-busy="true">
         <SkeletonRows />

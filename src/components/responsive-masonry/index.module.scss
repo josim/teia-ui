@@ -25,6 +25,7 @@
 }
 
 .virtual_spacer {
+  position: relative;
   width: 100%;
   // useVirtualList does its own scroll anchoring for rows above the fold.
   overflow-anchor: none;

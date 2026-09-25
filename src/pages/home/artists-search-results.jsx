@@ -1,0 +1,134 @@
+import { useState } from 'react'
+import { Button } from '@atoms/button'
+import { Loading } from '@atoms/loading'
+import { Checkbox } from '@atoms/input'
+import { useArtistsPage, useArtistExtras } from '@data/artists'
+import ArtistCard, { DEFAULT_SHOW, readDraft } from '@pages/artists/ArtistCard'
+import useSettings from '@hooks/use-settings'
+import {
+  METADATA_ACCESSIBILITY_HAZARDS_PHOTOSENS,
+  METADATA_CONTENT_RATING_MATURE,
+} from '@constants'
+import styles from '@pages/artists/index.module.scss'
+
+/**
+ * Artists tab of the search page, copied from the artists directory: same
+ * cards, hazard toggles, and pager. `filters` is the raw filter state and
+ * `boolExp` its toBoolExp form; mount with `key` per search to reset paging.
+ */
+export default function ArtistsSearchResults({ term, filters, boolExp }) {
+  // Each entry is the (cursor, excluded artists) pair that produced a page;
+  // the last entry is the current page. Previous just pops.
+  const [history, setHistory] = useState([{ before: null, exclude: [] }])
+  const current = history[history.length - 1]
+  const { data, error } = useArtistsPage(
+    current.before,
+    current.exclude,
+    term,
+    boolExp
+  )
+  const { data: extras } = useArtistExtras(
+    data?.artists.map((a) => a.address) ?? []
+  )
+
+  // Primary/secondary split needs a column compare Hasura can't do server-side.
+  const marketFilter = (token) => {
+    if (filters.market === 'All') return true
+    const own = token.listings.some((l) => l.seller_address === token.artist)
+    return filters.market === 'Primary' ? own : token.listings.length && !own
+  }
+  const page = history.length - 1
+
+  const [showPhotosensitive, setShowPhotosensitive] = useState(false)
+  const [showNsfw, setShowNsfw] = useState(false)
+  const { photosensitiveMap, nsfwMap } = useSettings()
+  const hazardFilters = [
+    {
+      label: 'Photosensitive',
+      active: !showPhotosensitive,
+      hide: (token) =>
+        photosensitiveMap.get(token.token_id) === 1 ||
+        token.teia_meta?.accessibility?.hazards?.includes(
+          METADATA_ACCESSIBILITY_HAZARDS_PHOTOSENS
+        ),
+    },
+    {
+      label: 'NSFW',
+      active: !showNsfw,
+      hide: (token) =>
+        nsfwMap.get(token.token_id) === 1 ||
+        token.teia_meta?.content_rating === METADATA_CONTENT_RATING_MATURE,
+    },
+  ]
+
+  const nextPage = () => {
+    setHistory((h) => [
+      ...h,
+      {
+        before: data.cursor,
+        exclude: [...current.exclude, ...data.artists.map((a) => a.address)],
+      },
+    ])
+    window.scrollTo(0, 0)
+  }
+  const prevPage = () => {
+    setHistory((h) => h.slice(0, -1))
+    window.scrollTo(0, 0)
+  }
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.toggles}>
+        <Checkbox
+          checked={showPhotosensitive}
+          onCheck={setShowPhotosensitive}
+          label="Show photosensitive creations"
+        />
+        <Checkbox
+          checked={showNsfw}
+          onCheck={setShowNsfw}
+          label="Show NSFW creations"
+        />
+      </div>
+
+      {error && <p className={styles.empty}>Error: {error.message}</p>}
+      {!data && !error && (
+        <div className={styles.loading}>
+          <Loading message="Loading artists" />
+        </div>
+      )}
+
+      {data && (
+        <div className={styles.grid}>
+          {data.artists.map((artist) => (
+            <ArtistCard
+              key={artist.address}
+              artist={artist}
+              extras={extras?.[artist.address]}
+              show={
+                readDraft(artist.address)?.show ??
+                artist.card?.show ??
+                DEFAULT_SHOW
+              }
+              tags={readDraft(artist.address)?.tags ?? artist.card?.tags ?? []}
+              hazardFilters={hazardFilters}
+              marketFilter={marketFilter}
+            />
+          ))}
+        </div>
+      )}
+
+      {data && (page > 0 || data.hasMore) && (
+        <div className={styles.pager}>
+          <Button small disabled={page === 0} onClick={prevPage}>
+            Previous
+          </Button>
+          <span className={styles.pageInfo}>Page {page + 1}</span>
+          <Button small disabled={!data.hasMore} onClick={nextPage}>
+            Next
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
