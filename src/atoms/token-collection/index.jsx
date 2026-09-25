@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import get from 'lodash/get'
 import { request } from 'graphql-request'
-import { ResponsiveMasonry } from '@components/responsive-masonry'
+import { VirtualColumn, VirtualMasonry } from '@components/responsive-masonry'
 import { FeedItem } from '@components/feed-item'
 import { Container } from '@atoms/layout'
 import InfiniteScroll from 'react-infinite-scroller'
@@ -21,6 +21,13 @@ import { IconCache } from '@utils/with-icon'
 import { shallow } from 'zustand/shallow'
 import { useUserStore } from '@context/userStore'
 
+// Starting heights for tiles not yet measured (see useVirtualList).
+const SINGLE_ESTIMATE = 650
+const MASONRY_ESTIMATE = 280
+
+const getTokenKey = (token) => token.key || token.token_id
+const renderToken = (token) => <FeedItem nft={token} />
+
 /**
  * Single view, vertical feed
  * @param {Object} feedProps - The options for the feed item
@@ -30,9 +37,13 @@ import { useUserStore } from '@context/userStore'
 function SingleView({ tokens }) {
   return (
     <div className={`${styles.single_view} no-fool`}>
-      {tokens.map((token) => (
-        <FeedItem key={token.token_id} nft={token} />
-      ))}
+      <VirtualColumn
+        items={tokens}
+        getKey={getTokenKey}
+        renderItem={renderToken}
+        estimateSize={SINGLE_ESTIMATE}
+        rowClassName={styles.single_row}
+      />
     </div>
   )
 }
@@ -45,16 +56,12 @@ function SingleView({ tokens }) {
  */
 function MasonryView({ tokens }) {
   return (
-    <ResponsiveMasonry>
-      {tokens.map((token) => (
-        // <motion.div
-        //   exit={{ opacity: 0, x: -1000 }}
-        //   key={token.key || token.token_id}
-        // >
-        <FeedItem key={token.key || token.token_id} nft={token} />
-        // </motion.div>
-      ))}
-    </ResponsiveMasonry>
+    <VirtualMasonry
+      items={tokens}
+      getKey={getTokenKey}
+      renderItem={renderToken}
+      estimateSize={MASONRY_ESTIMATE}
+    />
   )
 }
 /**

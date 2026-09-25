@@ -11,7 +11,7 @@ import {
 import type { FeedType } from '@constants'
 import { useLocalSettings } from '@context/localSettingsStore'
 import * as FEEDS from './feeds'
-import SubjktsSearchResults from './subjkts-search-results'
+import UserSearchResults from './user-search-results'
 
 const DefaultFeedComponent = FEEDS.RecentSalesFeed
 
@@ -78,7 +78,7 @@ export function Home({ isSearch = false }) {
         )}
       </>
       <>
-        {isSearch && searchParams.get('term') ? <SubjktsSearchResults /> : null}
+        {isSearch && searchParams.get('term') ? <UserSearchResults /> : null}
       </>
       {isSearch ? (
         searchParams.get('term') ? (
