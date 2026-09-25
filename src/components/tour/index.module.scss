@@ -83,3 +83,33 @@
     color: var(--highlight-color);
   }
 }
+
+.blink {
+  position: relative;
+  animation: blink 1s ease-in-out infinite;
+
+  // Two arcs (like a refresh icon) spinning around the circle.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1px solid currentColor;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    animation: spin 1.5s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blink {
+  50% {
+    color: var(--highlight-color);
+    opacity: 0.3;
+  }
+}
