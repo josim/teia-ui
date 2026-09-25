@@ -45,12 +45,15 @@ export function useUserSearch(term) {
   return { users: data, isLagging }
 }
 
+/** Case-insensitive exact tag match for `_ilike`: escape LIKE wildcards. */
+export const tagPattern = (term) => term.replace(/[\\%_]/g, '\\$&')
+
 // Same filter as the OBJKTs tab (TagFeed).
 const OBJKT_COUNT_QUERY = gql`
   query objktCount($tag: String!, $filters: tokens_bool_exp!) {
     tokens_aggregate(
       where: {
-        tags: { tag: { _eq: $tag } }
+        tags: { tag: { _ilike: $tag } }
         editions: { _neq: 0 }
         fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }
         metadata_status: { _eq: "processed" }
@@ -105,7 +108,7 @@ export const useObjktCount = (term, filters = {}) =>
   useCount(
     'search-objkt-count',
     OBJKT_COUNT_QUERY,
-    term && { tag: term, filters }
+    term && { tag: tagPattern(term), filters }
   )
 
 export const useArtistCount = (term, filters = {}) =>

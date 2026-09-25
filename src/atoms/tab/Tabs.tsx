@@ -17,6 +17,8 @@ interface TabsProps {
   className?: string
   /**A method to filter out the tabs */
   filter?: (tabs: TabOptions) => TabOptions | null
+  /**`data-tour` target for the row of tabs (see components/tour) */
+  tourTarget?: string
 }
 
 /**
@@ -26,6 +28,7 @@ export const Tabs = ({
   tabs,
   className,
   filter /*onClickprops = {}*/,
+  tourTarget,
 }: TabsProps) => {
   const filtered_tabs = useMemo(
     () => (filter ? tabs.map(filter).filter((v) => v !== null) : tabs),
@@ -34,7 +37,7 @@ export const Tabs = ({
 
   return (
     <div className={`${styles.container} ${className ? className : ''}`}>
-      <div className={styles.tabs}>
+      <div className={styles.tabs} data-tour={tourTarget}>
         {filtered_tabs.map((tab, index) => {
           if (tab) {
             return (

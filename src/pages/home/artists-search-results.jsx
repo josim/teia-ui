@@ -80,16 +80,18 @@ export default function ArtistsSearchResults({ term, filters, boolExp }) {
   return (
     <div className={styles.page}>
       <div className={styles.toggles}>
-        <Checkbox
-          checked={showPhotosensitive}
-          onCheck={setShowPhotosensitive}
-          label="Show photosensitive creations"
-        />
-        <Checkbox
-          checked={showNsfw}
-          onCheck={setShowNsfw}
-          label="Show NSFW creations"
-        />
+        <div data-tour="hazards" className={homeStyles.hazard_group}>
+          <Checkbox
+            checked={showPhotosensitive}
+            onCheck={setShowPhotosensitive}
+            label="Show photosensitive creations"
+          />
+          <Checkbox
+            checked={showNsfw}
+            onCheck={setShowNsfw}
+            label="Show NSFW creations"
+          />
+        </div>
       </div>
 
       {error && <p className={styles.empty}>Error: {error.message}</p>}

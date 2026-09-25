@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom'
 import { Input } from '@atoms/input'
 import { Tabs } from '@atoms/tab'
+import Tour, { TourLink } from '@components/tour'
 import { useEvents } from '@hooks/use-events'
 import {
   filterEvents,
@@ -22,6 +23,22 @@ import * as FEEDS from './feeds'
 import UserSearchResults from './user-search-results'
 import ArtistsSearchResults from './artists-search-results'
 import EventsSearchResults from './events-search-results'
+
+const SEARCH_TOUR = [
+  { target: 'search', text: 'Type a search term and press Enter.' },
+  {
+    target: 'filters',
+    text: 'Narrow OBJKTs and artists by file type, year, license, market or tag.',
+  },
+  {
+    target: 'tabs',
+    text: 'Results are split into categories. Each tab shows how many matched; switch tabs to browse them.',
+  },
+  {
+    target: 'hazards',
+    text: 'Photosensitive and NSFW creations are hidden unless you opt in here.',
+  },
+]
 
 const withCount = (label, count) =>
   count === undefined ? label : `${label} (${count.toLocaleString()})`
@@ -79,49 +96,59 @@ export default function Search() {
 
   return (
     <>
-      <Input
-        className={artistStyles.search}
-        type="text"
-        name="Enter a search term and press enter:"
-        label="Search"
-        onChange={(value) => {
-          setSearchTerm(value)
-        }}
-        placeholder="Search ↵"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            navigate(
-              {
-                pathname,
-                search: createSearchParams({
-                  term: searchTerm,
-                }).toString(),
-              },
-              { replace: true }
-            )
-          }
-        }}
-        value={searchTerm}
-      >
-        <div className={artistStyles.search_actions}>
-          {activeCount > 0 && (
-            <button type="button" onClick={() => setFilters(EMPTY_FILTERS)}>
-              Clear
+      <Tour name="search" steps={SEARCH_TOUR} />
+      <div data-tour="search" className={styles.search_input}>
+        <Input
+          className={artistStyles.search}
+          type="text"
+          name="Enter a search term and press enter:"
+          label="Search"
+          onChange={(value) => {
+            setSearchTerm(value)
+          }}
+          placeholder="Search ↵"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              navigate(
+                {
+                  pathname,
+                  search: createSearchParams({
+                    term: searchTerm,
+                  }).toString(),
+                },
+                { replace: true }
+              )
+            }
+          }}
+          value={searchTerm}
+        >
+          <div className={artistStyles.search_actions}>
+            {activeCount > 0 && (
+              <button type="button" onClick={() => setFilters(EMPTY_FILTERS)}>
+                Clear
+              </button>
+            )}
+            <button
+              type="button"
+              data-tour="filters"
+              onClick={() => setShowFilters((v) => !v)}
+            >
+              {showFilters ? '▴' : '▾'} Filters
+              {activeCount ? ` (${activeCount})` : ''}
             </button>
-          )}
-          <button type="button" onClick={() => setShowFilters((v) => !v)}>
-            {showFilters ? '▴' : '▾'} Filters
-            {activeCount ? ` (${activeCount})` : ''}
-          </button>
-        </div>
-      </Input>
+            <TourLink name="search" title="How search works" />
+          </div>
+        </Input>
+      </div>
       {showFilters && (
         <FiltersPanel filters={filters} setFilters={setFilters} />
       )}
 
       {term && (
         <>
-          <Tabs className={styles.search_tabs} tabs={tabs} />
+          <div className={styles.search_tabs}>
+            <Tabs tabs={tabs} tourTarget="tabs" />
+          </div>
           {tab === '' && <FEEDS.SearchFeed filters={boolExp} />}
           {tab === 'artists' && (
             <ArtistsSearchResults

@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import TokenCollection from '@atoms/token-collection'
 import { Checkbox } from '@atoms/input'
 import { BaseTokenFieldsFragment } from '@data/api'
+import { tagPattern } from '@data/search'
 import useSettings from '@hooks/use-settings'
 import {
   HEN_CONTRACT_FA2,
@@ -11,6 +12,7 @@ import {
   METADATA_CONTENT_RATING_MATURE,
 } from '@constants'
 import artistStyles from '@pages/artists/index.module.scss'
+import homeStyles from '@pages/home/index.module.scss'
 
 /**
  * TagFeed's query plus the search page filters (`filters` is a
@@ -37,23 +39,25 @@ export function SearchFeed({ filters = {} }) {
     <>
       <div className={artistStyles.page}>
         <div className={artistStyles.toggles}>
-          <Checkbox
-            checked={showPhotosensitive}
-            onCheck={setShowPhotosensitive}
-            label="Show photosensitive creations"
-          />
-          <Checkbox
-            checked={showNsfw}
-            onCheck={setShowNsfw}
-            label="Show NSFW creations"
-          />
+          <div data-tour="hazards" className={homeStyles.hazard_group}>
+            <Checkbox
+              checked={showPhotosensitive}
+              onCheck={setShowPhotosensitive}
+              label="Show photosensitive creations"
+            />
+            <Checkbox
+              checked={showNsfw}
+              onCheck={setShowNsfw}
+              label="Show NSFW creations"
+            />
+          </div>
         </div>
       </div>
       <TokenCollection
         feeds_menu={false}
         label="Search"
         namespace="search-feed"
-        variables={{ tag: searchTerm, filters }}
+        variables={{ tag: tagPattern(searchTerm), filters }}
         swrParams={[searchTerm, JSON.stringify(filters)]}
         maxItems={600}
         postProcessTokens={(tokens) =>
@@ -72,7 +76,7 @@ export function SearchFeed({ filters = {} }) {
         ) {
           tokens(
             where: {
-              tags: { tag: { _eq: $tag } },
+              tags: { tag: { _ilike: $tag } },
               editions: { _neq: 0 },
               fa2_address: { _eq: "${HEN_CONTRACT_FA2}" },
               metadata_status: { _eq: "processed" },

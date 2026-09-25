@@ -126,14 +126,18 @@ export default function Tour({ name, steps }) {
 
 /**
  * Circled "?" that starts the tour called `name`. Blinks until clicked;
- * resets whenever the page mounts it again.
+ * resets whenever the page mounts it again. Keeps the current query params
+ * (e.g. a search term) alongside `tour`.
  */
 export function TourLink({ name, title = 'How it works' }) {
   const [seen, setSeen] = useState(false)
+  const [params] = useSearchParams()
+  const search = new URLSearchParams(params)
+  search.set('tour', name)
 
   return (
     <Link
-      to={`?tour=${name}`}
+      to={`?${search}`}
       className={`${styles.help} ${seen ? '' : styles.blink}`}
       title={title}
       aria-label={title}

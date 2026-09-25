@@ -82,9 +82,27 @@
 }
 
 // Tabs atom left-aligns its row from tablet up; center it on the search page.
-.search_tabs > div:first-child {
+.search_tabs {
+  width: 100%;
+
+  & > div > div:first-child {
+    justify-content: center;
+    width: fit-content;
+    margin: 0 auto;
+  }
+}
+
+// Tour target around the photosensitive / NSFW checkboxes.
+.hazard_group {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  align-self: center;
+  gap: 1rem;
+}
+
+// Tour target wrapper around the search input.
+.search_input {
+  width: 100%;
 }
 
 // Same as TokenCollection's empty state, for the other search tabs.
