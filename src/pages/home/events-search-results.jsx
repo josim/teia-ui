@@ -3,6 +3,7 @@ import { Loading } from '@atoms/loading'
 import { useEvents } from '@hooks/use-events'
 import { filterEvents } from '@data/search'
 import styles from '@pages/events/index.module.scss'
+import homeStyles from '@style'
 
 function getBannerTextColor(hex) {
   const value = hex?.replace('#', '')
@@ -73,6 +74,12 @@ export default function EventsSearchResults({ term }) {
                 </div>
               </article>
             ))}
+          </div>
+        )}
+
+        {!isLoading && !error && !matches.length && (
+          <div className={homeStyles.empty_section}>
+            <h1>no results</h1>
           </div>
         )}
 

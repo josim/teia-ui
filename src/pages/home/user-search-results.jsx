@@ -52,7 +52,11 @@ function UserSearchResults() {
   }
 
   if (!holders.length) {
-    return null
+    return (
+      <div className={styles.empty_section}>
+        <h1>no results</h1>
+      </div>
+    )
   }
 
   // Keyed by term so measurements and scroll position reset per search.

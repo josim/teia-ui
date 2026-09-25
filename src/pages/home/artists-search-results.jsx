@@ -10,6 +10,7 @@ import {
   METADATA_CONTENT_RATING_MATURE,
 } from '@constants'
 import styles from '@pages/artists/index.module.scss'
+import homeStyles from '@style'
 
 /**
  * Artists tab of the search page, copied from the artists directory: same
@@ -95,6 +96,12 @@ export default function ArtistsSearchResults({ term, filters, boolExp }) {
       {!data && !error && (
         <div className={styles.loading}>
           <Loading message="Loading artists" />
+        </div>
+      )}
+
+      {data && !data.artists.length && (
+        <div className={homeStyles.empty_section}>
+          <h1>no results</h1>
         </div>
       )}
 

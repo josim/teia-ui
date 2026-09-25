@@ -86,3 +86,11 @@
   justify-content: center;
   align-self: center;
 }
+
+// Same as TokenCollection's empty state, for the other search tabs.
+.empty_section {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 2em 0;
+}
