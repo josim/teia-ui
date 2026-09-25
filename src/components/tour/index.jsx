@@ -124,14 +124,20 @@ export default function Tour({ name, steps }) {
   )
 }
 
-/** Circled "?" that starts the tour called `name`. */
+/**
+ * Circled "?" that starts the tour called `name`. Blinks until clicked;
+ * resets whenever the page mounts it again.
+ */
 export function TourLink({ name, title = 'How it works' }) {
+  const [seen, setSeen] = useState(false)
+
   return (
     <Link
       to={`?tour=${name}`}
-      className={styles.help}
+      className={`${styles.help} ${seen ? '' : styles.blink}`}
       title={title}
       aria-label={title}
+      onClick={() => setSeen(true)}
     >
       ?
     </Link>
