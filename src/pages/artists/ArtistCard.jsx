@@ -492,6 +492,7 @@ export const CARD_FIELDS = [
   { key: 'bio', label: 'Bio' },
   { key: 'roles', label: 'Role badges' },
   { key: 'domain', label: 'Tezos domain' },
+  { key: 'website', label: 'Website' },
   { key: 'twitter', label: 'Twitter' },
   { key: 'bluesky', label: 'Bluesky' },
   { key: 'discord', label: 'Discord' },
@@ -564,6 +565,11 @@ export default function ArtistCard({
       extras.domain && {
         label: extras.domain,
         href: `https://tzkt.io/${artist.address}`,
+      },
+    on('website') &&
+      extras.website && {
+        label: extras.website.replace(/^https?:\/\//i, '').replace(/\/$/, ''),
+        href: extras.website,
       },
     on('twitter') &&
       extras.twitter && {

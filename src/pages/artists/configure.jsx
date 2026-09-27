@@ -68,6 +68,7 @@ export default function ConfigureArtistCard() {
       roles.isModerator || roles.isMultisig || roles.isTokenHolder
     ),
     domain: Boolean(ex.domain),
+    website: Boolean(ex.website),
     twitter: Boolean(ex.twitter),
     bluesky: bsky === undefined ? undefined : Boolean(bsky?.handle),
     discord: Boolean(ex.discord),

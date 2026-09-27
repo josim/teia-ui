@@ -198,7 +198,7 @@ export function useArtistExtras(addresses, deep = false) {
       soft(
         axios
           .post(import.meta.env.VITE_TEZOSDOMAINS_GRAPHQL_API, {
-            query: `query($a: [Address!]) { reverseRecords(where: { address: { in: $a } }) { items { address domain { name } } } }`,
+            query: `query($a: [Address!]) { reverseRecords(where: { address: { in: $a } }) { items { address domain { name data { key value } } } } }`,
             variables: { a: addresses },
           })
           .then((r) => r.data?.data?.reverseRecords?.items ?? []),
@@ -217,7 +217,16 @@ export function useArtistExtras(addresses, deep = false) {
           ),
       soft(fetchAccountsTokenBalances(addresses), new Map()),
     ])
-    for (const d of domains) out[d.address].domain = d.domain?.name
+    for (const d of domains) {
+      out[d.address].domain = d.domain?.name
+      // Website set on the Tezos domain. On-chain and user-controlled, so
+      // only http(s) is allowed through to an href.
+      const site = d.domain?.data?.find(
+        (r) => r.key === 'web:redirect_url'
+      )?.value
+      if (typeof site === 'string' && /^https?:\/\//i.test(site))
+        out[d.address].website = site
+    }
     for (const a of accounts ?? []) {
       if (!a?.address) continue
       const p = a.extras?.profile ?? {}
