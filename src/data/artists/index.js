@@ -198,7 +198,7 @@ export function useArtistExtras(addresses, deep = false) {
       soft(
         axios
           .post(import.meta.env.VITE_TEZOSDOMAINS_GRAPHQL_API, {
-            query: `query($a: [Address!]) { reverseRecords(where: { address: { in: $a } }) { items { address domain { name } } } }`,
+            query: `query($a: [Address!]) { reverseRecords(where: { address: { in: $a } }) { items { address domain { name data { key value } } } } }`,
             variables: { a: addresses },
           })
           .then((r) => r.data?.data?.reverseRecords?.items ?? []),
