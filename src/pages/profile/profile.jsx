@@ -134,14 +134,25 @@ export default function Profile({ user }) {
           />
         </div>
         <div className={styles.info}>
-          <p className={styles.user} data-tour="name">
-            {user.subjkt || user.alias}{' '}
-            <TourLink name="profile" title="How profiles work" />
-          </p>
+          {/* One tab stop for name, badges and bio, so keyboard users can
+              land on (and see) who this profile belongs to. */}
+          <div
+            className={styles.identity}
+            role="group"
+            aria-label={user.subjkt || user.alias || user.address}
+            // Deliberate: a single focus stop for the identity block.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            tabIndex={0}
+          >
+            <p className={styles.user} data-tour="name">
+              {user.subjkt || user.alias}{' '}
+              <TourLink name="profile" title="How profiles work" />
+            </p>
 
-          <RoleBadges address={user.address} tourTarget="badges" />
+            <RoleBadges address={user.address} tourTarget="badges" />
 
-          {user.description && <p data-tour="bio">{user.description}</p>}
+            {user.description && <p data-tour="bio">{user.description}</p>}
+          </div>
 
           {coreParticipants && coreParticipants.length > 0 && (
             <ParticipantList title={false} participants={coreParticipants} />
