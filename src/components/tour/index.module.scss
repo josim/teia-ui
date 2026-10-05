@@ -35,6 +35,17 @@
   }
 }
 
+// Hint: just a title, sized to fit.
+.hint {
+  width: auto;
+
+  p {
+    margin: 0;
+    padding-right: 1.5rem;
+    font-weight: bold;
+  }
+}
+
 .pop_right::before {
   left: auto;
   right: 12px;

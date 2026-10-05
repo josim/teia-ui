@@ -147,6 +147,55 @@ export default function Tour({ name, steps }) {
 }
 
 /**
+ * Standalone callout under the element marked `data-tour="<target>"`, its
+ * arrow pointing up at it (right-aligned). No spotlight, no steps.
+ */
+export function Hint({ target, title, onClose }) {
+  const [rect, setRect] = useState(null)
+
+  useEffect(() => {
+    const el = document.querySelector(`[data-tour="${target}"]`)
+    if (!el) return
+    const measure = () => setRect(el.getBoundingClientRect())
+    measure()
+    // Banners above the header can shift it after mount.
+    const observer = new ResizeObserver(measure)
+    observer.observe(document.body)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [target])
+
+  if (!rect) return null
+
+  return (
+    <div
+      role="note"
+      className={`${styles.pop} ${styles.pop_right} ${styles.hint}`}
+      style={{
+        top: rect.bottom + 12,
+        right: Math.max(
+          16,
+          document.documentElement.clientWidth - rect.right - PAD
+        ),
+      }}
+    >
+      <button
+        type="button"
+        className={styles.close}
+        onClick={onClose}
+        aria-label="Close"
+      >
+        <CloseIcon fill="var(--text-color)" width="10" />
+      </button>
+      <p>{title}</p>
+    </div>
+  )
+}
+
+/**
  * Circled "?" that starts the tour called `name`. Blinks until clicked;
  * resets whenever the page mounts it again. Keeps the current query params
  * (e.g. a search term) alongside `tour`. `path` opens another page first.

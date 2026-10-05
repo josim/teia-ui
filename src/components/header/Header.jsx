@@ -251,6 +251,7 @@ export const Header = () => {
             <Button
               alt={`${collapsed ? 'show' : 'hide'} menu`}
               onClick={toggleMenu}
+              data-tour="menu"
               secondary
             >
               <Menu isOpen={!collapsed} />

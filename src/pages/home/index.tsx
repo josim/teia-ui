@@ -1,9 +1,11 @@
 // TODO (mel & xat) - best way to handle filter composition?
 import { Page } from '@atoms/layout'
-import { FunctionComponent } from 'react'
+import { FunctionComponent, useState } from 'react'
 import { useOutlet } from 'react-router-dom'
 import type { FeedType } from '@constants'
 import { useLocalSettings } from '@context/localSettingsStore'
+import { useModalStore } from '@context/modalStore'
+import { Hint } from '@components/tour'
 import * as FEEDS from './feeds'
 import Search from './search'
 
@@ -35,6 +37,17 @@ export const feedComponentMap: FeedComponentMap = {
   Friends: FEEDS.FriendsFeed,
 }
 
+/** Points at the menu on every visit; hidden while the menu is open or once closed. */
+function ExploreHint() {
+  const [closed, setClosed] = useState(false)
+  const menuOpen = useModalStore((st) => !st.collapsed)
+
+  if (closed || menuOpen) return null
+  return (
+    <Hint target="menu" title="Explore More" onClose={() => setClosed(true)} />
+  )
+}
+
 export function Home({ isSearch = false }) {
   const outlet = useOutlet()
   const [startFeed] = useLocalSettings((st) => [st.startFeed])
@@ -42,7 +55,10 @@ export function Home({ isSearch = false }) {
 
   return (
     <Page feed={!isSearch} title="Home">
-      {isSearch ? <Search /> : outlet || <FeedComponent />}
+      <>
+        {!isSearch && !outlet && <ExploreHint />}
+        {isSearch ? <Search /> : outlet || <FeedComponent />}
+      </>
     </Page>
   )
 }
