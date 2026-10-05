@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import styles from '@style'
 import { Line } from '@atoms/line'
 import Button from '@atoms/button/Button'
+import { TourLink } from '@components/tour'
 export interface TabOptions {
   title: string
   to?: string
@@ -10,6 +11,8 @@ export interface TabOptions {
   restricted?: boolean
   /**only relevant when user is the owner*/
   private?: boolean
+  /**name of a tour (see components/tour) opened by a "?" on the tab */
+  tour?: string
 }
 
 interface TabsProps {
@@ -40,7 +43,7 @@ export const Tabs = ({
       <div className={styles.tabs} data-tour={tourTarget}>
         {filtered_tabs.map((tab, index) => {
           if (tab) {
-            return (
+            const button = (
               <Button
                 alt={`tab_${tab.title}`}
                 preventScrollReset
@@ -52,6 +55,19 @@ export const Tabs = ({
               >
                 {tab.title}
               </Button>
+            )
+            if (!tab.tour) return button
+            return (
+              <span key={tab.title} className={styles.tab_wrap}>
+                {button}
+                <span className={styles.tab_tour}>
+                  <TourLink
+                    name={tab.tour}
+                    path={tab.to || '.'}
+                    title={`How ${tab.title} works`}
+                  />
+                </span>
+              </span>
             )
           }
           return null

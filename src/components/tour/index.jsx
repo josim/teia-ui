@@ -40,7 +40,10 @@ export default function Tour({ name, steps }) {
     // Wait a frame: a parent may still be about to show the target (e.g. a
     // dialog calling showModal() in its own effect, which runs after ours).
     const frame = requestAnimationFrame(() => {
-      el.scrollIntoView({ block: 'center' })
+      // Taller than the screen: show its top rather than its middle.
+      el.scrollIntoView({
+        block: el.offsetHeight > window.innerHeight ? 'start' : 'center',
+      })
       measure()
     })
     window.addEventListener('resize', measure)
@@ -53,9 +56,25 @@ export default function Tour({ name, steps }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step])
 
+  const last = i === steps.length - 1 && step.next !== false
+
+  // ← / → step like Back / Next (Done on the last step), except while typing.
+  useEffect(() => {
+    if (!active || !rect) return
+    const onKey = (e) => {
+      if (e.target.closest?.('input, textarea, select, [contenteditable]'))
+        return
+      if (e.key === 'ArrowLeft' && i > 0) setI(i - 1)
+      else if (e.key === 'ArrowRight' && step.next !== false)
+        last ? end() : setI(i + 1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   if (!active || !rect) return null
 
-  const last = i === steps.length - 1 && step.next !== false
+  const viewport = document.documentElement.clientHeight
 
   return (
     <>
@@ -75,8 +94,11 @@ export default function Tour({ name, steps }) {
         style={{
           ...(step.above
             ? {
-                bottom: document.documentElement.clientHeight - rect.top + 12,
+                bottom: viewport - rect.top + 12,
               }
+            : // No room below a tall target: pin to the bottom of the screen.
+            viewport - rect.bottom < 180
+            ? { bottom: 16 }
             : { top: rect.bottom + 12 }),
           ...(step.align === 'right'
             ? {
@@ -127,9 +149,9 @@ export default function Tour({ name, steps }) {
 /**
  * Circled "?" that starts the tour called `name`. Blinks until clicked;
  * resets whenever the page mounts it again. Keeps the current query params
- * (e.g. a search term) alongside `tour`.
+ * (e.g. a search term) alongside `tour`. `path` opens another page first.
  */
-export function TourLink({ name, title = 'How it works' }) {
+export function TourLink({ name, title = 'How it works', path = '' }) {
   const [seen, setSeen] = useState(false)
   const [params] = useSearchParams()
   const search = new URLSearchParams(params)
@@ -137,7 +159,7 @@ export function TourLink({ name, title = 'How it works' }) {
 
   return (
     <Link
-      to={`?${search}`}
+      to={`${path}?${search}`}
       className={`${styles.help} ${seen ? '' : styles.blink}`}
       title={title}
       aria-label={title}

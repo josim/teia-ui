@@ -13,11 +13,14 @@ const BADGES = [
  * list contexts where roles are resolved in bulk, to avoid a hook call per row.
  * Renders nothing when no roles apply.
  */
-export function RoleBadgesView({ roles, className }) {
+export function RoleBadgesView({ roles, className, tourTarget }) {
   const active = BADGES.filter(({ key }) => roles?.[key])
   if (active.length === 0) return null
   return (
-    <span className={`${styles.badges} ${className ?? ''}`}>
+    <span
+      className={`${styles.badges} ${className ?? ''}`}
+      data-tour={tourTarget}
+    >
       {active.map(({ key, label, cls }) => (
         <span key={key} className={cls}>
           {label}
@@ -32,7 +35,13 @@ export function RoleBadgesView({ roles, className }) {
  * is shown, the three role sets are cached app-wide, so this costs no
  * per-address requests.
  */
-export default function RoleBadges({ address, className }) {
+export default function RoleBadges({ address, className, tourTarget }) {
   const roles = useAccountRoles(address)
-  return <RoleBadgesView roles={roles} className={className} />
+  return (
+    <RoleBadgesView
+      roles={roles}
+      className={className}
+      tourTarget={tourTarget}
+    />
+  )
 }

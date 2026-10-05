@@ -120,7 +120,7 @@ export const FeedToolbar = ({ feeds_menu = false }) => {
           </DropdownButton>
         </div>
       )}
-      <div className={styles.view_mode_area}>
+      <div className={styles.view_mode_area} data-tour="view-mode">
         <IconToggle
           alt={'single view mode'}
           toggled={viewMode === 'single'}

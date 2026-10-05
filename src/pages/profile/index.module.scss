@@ -74,6 +74,7 @@
   }
   .socials {
     display: flex;
+    width: fit-content;
     margin-top: 8px;
   }
   @include respond-to('desktop') {
