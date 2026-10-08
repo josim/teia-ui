@@ -2,7 +2,7 @@ import { Container } from '@atoms/layout'
 import { Tags } from '@components/tags'
 import styles from '@style'
 import '../style.css'
-import { HashToURL } from '@utils'
+import { HashToURL, formatRoyalties } from '@utils'
 import { HEN_CONTRACT_FA2, LANGUAGES, LICENSE_TYPES } from '@constants'
 import { getWordDate } from '@utils/time'
 import { Line } from '@atoms/line'
@@ -30,9 +30,12 @@ export const Info = () => {
     ? `https://anaver.se/?gallery=1&loadsingle=1&singlecontract=${HEN_CONTRACT_FA2}&singletokenid=${nft.token_id}&wallet=${viewer_address}&partnerPlatform=teia.art`
     : `https://anaver.se/?gallery=1&loadsingle=1&singlecontract=${HEN_CONTRACT_FA2}&singletokenid=${nft.token_id}&partnerPlatform=teia.art`
   const metadata_ipfs_url = HashToURL(nft.metadata_uri)
-  const rightsUri = nft.rights === 'custom' && nft.right_uri && nft.right_uri.startsWith('ipfs://')
-    ? HashToURL(nft.right_uri)
-    : nft.right_uri
+  const rightsUri =
+    nft.rights === 'custom' &&
+    nft.right_uri &&
+    nft.right_uri.startsWith('ipfs://')
+      ? HashToURL(nft.right_uri)
+      : nft.right_uri
   return (
     <>
       <Container>
@@ -108,6 +111,8 @@ export const Info = () => {
             <a target="_blank" rel="noreferrer" href={artifact_anaverse_url}>
               View on anaverse
             </a>
+            {' // '}
+            {formatRoyalties(nft)} Royalties
           </div>
         </div>
       </Container>
