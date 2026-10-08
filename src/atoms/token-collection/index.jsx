@@ -1,5 +1,8 @@
 import useSWR from 'swr'
+import useSWRInfinite from 'swr/infinite'
 import get from 'lodash/get'
+import set from 'lodash/set'
+import uniqBy from 'lodash/uniqBy'
 import { request } from 'graphql-request'
 import { VirtualColumn, VirtualMasonry } from '@components/responsive-masonry'
 import { FeedItem } from '@components/feed-item'
@@ -75,6 +78,7 @@ function MasonryView({ tokens }) {
  * @param {[import("graphql-request").gql]} tkProps.query - The graphql query
  * @param {number} tkProps.itemsPerLoad - Batch size
  * @param {number} tkProps.maxItems - Max items to fetch from the indexer
+ * @param {boolean} tkProps.paginate - Fetch further maxItems-sized pages (query must take $offset) when scrolled past the end
  * @param {(data:NFT, extra:import("@types").TokenResponse) => [NFT]} tkProps.extractTokensFromResponse - Function to filter the response
  * @param {([NFT]) => [NFT]} tkProps.postProcessTokens - Final filter pass over tokens?
  * @returns {React.ReactElement} The feed
@@ -91,6 +95,7 @@ function TokenCollection({
   swrParams = [],
   itemsPerLoad = 40,
   maxItems = 2000,
+  paginate = false,
   resultsPath = 'tokens',
   tokenPath = '',
   keyPath = 'token_id',
@@ -130,7 +135,18 @@ function TokenCollection({
     ? parseInt(searchParams.get(namespace), 10)
     : itemsPerLoad
 
-  const { data, error } = useSWR(
+  const fetchPage = (offset) =>
+    request(import.meta.env.VITE_TEIA_GRAPHQL_API, query, {
+      ...variables,
+      limit: maxItems,
+      offset,
+    })
+
+  const {
+    data: firstPage,
+    error,
+    isLagging,
+  } = useSWR(
     disable ? null : [namespace, ...swrParams],
     async (ns) => {
       return typeof query === 'string'
@@ -146,6 +162,42 @@ function TokenCollection({
       use: [laggy],
     }
   )
+
+  // Pages after the first, fetched on demand once the scroll passes the end.
+  const {
+    data: nextPages = [],
+    size,
+    setSize,
+    isValidating,
+  } = useSWRInfinite(
+    (index, previous) => {
+      const prev = previous || firstPage
+      if (!paginate || disable || isLagging || !prev) return null
+      if (get(prev, resultsPath).length < maxItems) return null
+      return [namespace, ...swrParams, 'page', index + 1]
+    },
+    (...key) => fetchPage(key[key.length - 1] * maxItems),
+    { initialSize: 0, revalidateFirstPage: false, revalidateOnFocus: false }
+  )
+
+  const lastPage = nextPages.length
+    ? nextPages[nextPages.length - 1]
+    : firstPage
+  const hasMorePages =
+    paginate && !!lastPage && get(lastPage, resultsPath).length === maxItems
+
+  const data =
+    firstPage && nextPages.length
+      ? set(
+          {},
+          resultsPath,
+          // offsets can shift if new tokens are minted between page loads
+          uniqBy(
+            [firstPage, ...nextPages].flatMap((page) => get(page, resultsPath)),
+            keyPath
+          )
+        )
+      : firstPage
 
   if (error) {
     return (
@@ -225,6 +277,9 @@ function TokenCollection({
         <InfiniteScroll
           className={`${styles.infinite_scroll} no-fool`}
           loadMore={() => {
+            if (limit + itemsPerLoad > tokens.length && hasMorePages) {
+              setSize(size + 1)
+            }
             setSearchParams(
               {
                 ...Object.fromEntries(searchParams),
@@ -233,7 +288,7 @@ function TokenCollection({
               { preventScrollReset: true }
             )
           }}
-          hasMore={limit < tokens.length}
+          hasMore={limit < tokens.length || (hasMorePages && !isValidating)}
         >
           {viewMode === 'single' ? (
             <SingleView tokens={limitedTokens} />

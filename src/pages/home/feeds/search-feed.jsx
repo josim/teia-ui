@@ -60,6 +60,7 @@ export function SearchFeed({ filters = {} }) {
         variables={{ tag: tagPattern(searchTerm), filters }}
         swrParams={[searchTerm, JSON.stringify(filters)]}
         maxItems={600}
+        paginate
         postProcessTokens={(tokens) =>
           tokens.filter(
             (token) =>
@@ -72,6 +73,7 @@ export function SearchFeed({ filters = {} }) {
         query getObjktsByTag(
           $tag: String!
           $limit: Int!
+          $offset: Int = 0
           $filters: tokens_bool_exp!
         ) {
           tokens(
@@ -84,6 +86,7 @@ export function SearchFeed({ filters = {} }) {
             }
             order_by: { minted_at: desc }
             limit: $limit
+            offset: $offset
           ) {
             ...baseTokenFields
           }
