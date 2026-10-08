@@ -79,6 +79,7 @@ function MasonryView({ tokens }) {
  * @param {number} tkProps.itemsPerLoad - Batch size
  * @param {number} tkProps.maxItems - Max items to fetch from the indexer
  * @param {boolean} tkProps.paginate - Fetch further maxItems-sized pages (query must take $offset) when scrolled past the end
+ * @param {(page:number) => Object} tkProps.pageVariables - With paginate: variables for page n instead of $offset; pages never run out
  * @param {(data:NFT, extra:import("@types").TokenResponse) => [NFT]} tkProps.extractTokensFromResponse - Function to filter the response
  * @param {([NFT]) => [NFT]} tkProps.postProcessTokens - Final filter pass over tokens?
  * @returns {React.ReactElement} The feed
@@ -96,6 +97,7 @@ function TokenCollection({
   itemsPerLoad = 40,
   maxItems = 2000,
   paginate = false,
+  pageVariables,
   resultsPath = 'tokens',
   tokenPath = '',
   keyPath = 'token_id',
@@ -135,11 +137,11 @@ function TokenCollection({
     ? parseInt(searchParams.get(namespace), 10)
     : itemsPerLoad
 
-  const fetchPage = (offset) =>
+  const fetchPage = (page) =>
     request(import.meta.env.VITE_TEIA_GRAPHQL_API, query, {
       ...variables,
       limit: maxItems,
-      offset,
+      ...(pageVariables ? pageVariables(page) : { offset: page * maxItems }),
     })
 
   const {
@@ -152,6 +154,7 @@ function TokenCollection({
       return typeof query === 'string'
         ? request(import.meta.env.VITE_TEIA_GRAPHQL_API, query, {
             ...variables,
+            ...(pageVariables ? pageVariables(0) : {}),
             ...(maxItems ? { limit: maxItems } : {}),
           })
         : query
@@ -173,10 +176,11 @@ function TokenCollection({
     (index, previous) => {
       const prev = previous || firstPage
       if (!paginate || disable || isLagging || !prev) return null
-      if (get(prev, resultsPath).length < maxItems) return null
+      if (!pageVariables && get(prev, resultsPath).length < maxItems)
+        return null
       return [namespace, ...swrParams, 'page', index + 1]
     },
-    (...key) => fetchPage(key[key.length - 1] * maxItems),
+    (...key) => fetchPage(key[key.length - 1]),
     { initialSize: 0, revalidateFirstPage: false, revalidateOnFocus: false }
   )
 
@@ -184,7 +188,9 @@ function TokenCollection({
     ? nextPages[nextPages.length - 1]
     : firstPage
   const hasMorePages =
-    paginate && !!lastPage && get(lastPage, resultsPath).length === maxItems
+    paginate &&
+    !!lastPage &&
+    (!!pageVariables || get(lastPage, resultsPath).length === maxItems)
 
   const data =
     firstPage && nextPages.length

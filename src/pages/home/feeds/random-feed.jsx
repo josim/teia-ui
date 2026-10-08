@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { gql } from 'graphql-request'
 import random from 'lodash/random'
 import { BaseTokenFieldsFragment } from '@data/api'
@@ -7,15 +6,16 @@ import TokenCollection from '@atoms/token-collection'
 
 // TODO: Fetch last ID from the indexer
 export function RandomFeed({ firstId = 196, lastId = 1_592_463, max = 200 }) {
-  const tokenIds = useMemo(() => {
+  // A fresh draw per page; SWR caches each page, so a page keeps its ids.
+  const randomIds = () => {
     const uniqueIds = new Set()
 
     while (uniqueIds.size < max) {
       uniqueIds.add(`${random(firstId, lastId)}`)
     }
 
-    return Array.from(uniqueIds)
-  }, [firstId, lastId, max])
+    return { tokenIds: Array.from(uniqueIds) }
+  }
 
   return (
     <TokenCollection
@@ -23,8 +23,9 @@ export function RandomFeed({ firstId = 196, lastId = 1_592_463, max = 200 }) {
       label="Random"
       namespace="random-feed"
       enableInfinityScroll={false}
-      variables={{ tokenIds }}
       maxItems={200}
+      paginate
+      pageVariables={randomIds}
       query={gql`
         ${BaseTokenFieldsFragment}
         query Objkts($tokenIds: [String!] = "", $limit: Int!) {
