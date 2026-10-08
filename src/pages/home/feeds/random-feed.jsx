@@ -1,12 +1,15 @@
 import { useMemo } from 'react'
 import { gql } from 'graphql-request'
 import random from 'lodash/random'
+import { useLocation } from 'react-router-dom'
 import { BaseTokenFieldsFragment } from '@data/api'
 import { HEN_CONTRACT_FA2 } from '@constants'
 import TokenCollection from '@atoms/token-collection'
 
 // TODO: Fetch last ID from the indexer
 export function RandomFeed({ firstId = 196, lastId = 1_592_463, max = 200 }) {
+  // New location key on every dice roll -> fresh set of ids.
+  const { key: rollKey } = useLocation()
   const tokenIds = useMemo(() => {
     const uniqueIds = new Set()
 
@@ -15,13 +18,16 @@ export function RandomFeed({ firstId = 196, lastId = 1_592_463, max = 200 }) {
     }
 
     return Array.from(uniqueIds)
-  }, [firstId, lastId, max])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstId, lastId, max, rollKey])
 
   return (
     <TokenCollection
       feeds_menu
       label="Random"
       namespace="random-feed"
+      // SWR keys on namespace + swrParams only, so each roll needs its own key.
+      swrParams={[rollKey]}
       enableInfinityScroll={false}
       variables={{ tokenIds }}
       maxItems={200}
