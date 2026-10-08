@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
 import get from 'lodash/get'
@@ -129,6 +130,17 @@ function TokenCollection({
   useKeyboard('v', toggleViewMode)
   useKeyboard('z', toggleZen)
 
+  // Hazard toggles shown under the feed search (mirrors the artist directory):
+  // flagged tokens are hidden unless their toggle is on.
+  const [showPhotosensitive, setShowPhotosensitive] = useState(false)
+  const [showNsfw, setShowNsfw] = useState(false)
+  const hazards = {
+    showPhotosensitive,
+    setShowPhotosensitive,
+    showNsfw,
+    setShowNsfw,
+  }
+
   // let inViewMode = searchParams.get('view')
   //   ? searchParams.get('view')
   //   : viewMode
@@ -216,7 +228,7 @@ function TokenCollection({
   if (!data) {
     return (
       <div className={styles.feed_container}>
-        <FeedToolbar feeds_menu={feeds_menu} />
+        <FeedToolbar feeds_menu={feeds_menu} hazards={hazards} />
         <div className={styles.load_container}>
           <Loading message={`Loading ${label || namespace}`} />
         </div>
@@ -262,11 +274,17 @@ function TokenCollection({
           token.artist_address === user_address, // true (testing it in dev is not trivial)
       }
     })
+    .filter(
+      (token) =>
+        !feeds_menu ||
+        ((showPhotosensitive || !token.isPhotosensitive) &&
+          (showNsfw || !token.isNSFW))
+    )
 
   if (!tokens.length) {
     return (
       <div className={styles.feed_container}>
-        <FeedToolbar feeds_menu={feeds_menu} />
+        <FeedToolbar feeds_menu={feeds_menu} hazards={hazards} />
         <div className={styles.empty_section}>
           <h1>{emptyMessage}</h1>
         </div>
@@ -278,7 +296,7 @@ function TokenCollection({
 
   return (
     <div className={`${styles.feed_container} no-fool`}>
-      <FeedToolbar feeds_menu={feeds_menu} />
+      <FeedToolbar feeds_menu={feeds_menu} hazards={hazards} />
       <IconCache.Provider value={{}}>
         <InfiniteScroll
           className={`${styles.infinite_scroll} no-fool`}

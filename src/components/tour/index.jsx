@@ -200,6 +200,25 @@ export function Hint({ target, title, onClose }) {
  * resets whenever the page mounts it again. Keeps the current query params
  * (e.g. a search term) alongside `tour`. `path` opens another page first.
  */
+/** The same blinking "?" as TourLink, pointing at an external page. */
+export function HelpLink({ href, title = 'How it works' }) {
+  const [seen, setSeen] = useState(false)
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${styles.help} ${seen ? '' : styles.blink}`}
+      title={title}
+      aria-label={title}
+      onClick={() => setSeen(true)}
+    >
+      ?
+    </a>
+  )
+}
+
 export function TourLink({ name, title = 'How it works', path = '' }) {
   const [seen, setSeen] = useState(false)
   const [params] = useSearchParams()

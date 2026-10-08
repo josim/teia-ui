@@ -1,11 +1,14 @@
 import { gql } from 'graphql-request'
 import random from 'lodash/random'
+import { useSearchParams } from 'react-router-dom'
 import { BaseTokenFieldsFragment } from '@data/api'
 import { HEN_CONTRACT_FA2 } from '@constants'
 import TokenCollection from '@atoms/token-collection'
 
 // TODO: Fetch last ID from the indexer
 export function RandomFeed({ firstId = 196, lastId = 1_592_463, max = 200 }) {
+  // New `roll` param on every dice roll -> fresh set of ids.
+  const rollKey = useSearchParams()[0].get('roll')
   // A fresh draw per page; SWR caches each page, so a page keeps its ids.
   const randomIds = () => {
     const uniqueIds = new Set()
@@ -22,6 +25,8 @@ export function RandomFeed({ firstId = 196, lastId = 1_592_463, max = 200 }) {
       feeds_menu
       label="Random"
       namespace="random-feed"
+      // SWR keys on namespace + swrParams only, so each roll needs its own key.
+      swrParams={[rollKey]}
       enableInfinityScroll={false}
       maxItems={200}
       paginate
