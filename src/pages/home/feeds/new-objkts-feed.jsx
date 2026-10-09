@@ -14,9 +14,9 @@ export function NewObjktsFeed() {
       postProcessTokens={(tokens) => uniqBy(tokens, 'artist_address')}
       query={gql`
         ${BaseTokenFieldsFragment}
-        query getNewObjkt($limit: Int!) {
+        query getNewObjkt($limit: Int!, $filters: tokens_bool_exp!) {
           tokens(
-            where: { editions: { _gt: "0" }, metadata_status: { _eq: "processed" }, fa2_address: { _eq: "${HEN_CONTRACT_FA2}"} }
+            where: { editions: { _gt: "0" }, metadata_status: { _eq: "processed" }, fa2_address: { _eq: "${HEN_CONTRACT_FA2}"}, _and: [$filters] }
             order_by: { minted_at: desc }
             limit: $limit
 

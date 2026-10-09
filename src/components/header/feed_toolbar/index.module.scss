@@ -166,6 +166,12 @@
   grid-area: Search;
 }
 
+// Zero width + full min-width: fills the search column without widening it.
+.filters_area {
+  width: 0;
+  min-width: 100%;
+}
+
 // Mirrors the artist directory's hazard toggles.
 .toggles_area {
   grid-area: Toggles;
@@ -194,8 +200,8 @@
 
   label input {
     width: 100%;
-    // Right padding clears the Search button.
-    padding: 0.6rem 5rem 0.6rem 0.9rem;
+    // Right padding clears the Clear/Filters/Search controls.
+    padding: 0.6rem 12rem 0.6rem 0.9rem;
     border: 1px solid var(--text-color);
     border-radius: 4px;
     background: transparent;
@@ -216,6 +222,7 @@
   transform: translateY(-50%);
   display: flex;
   align-items: center;
+  gap: 0.75rem;
 
   button {
     background: none;

@@ -19,8 +19,8 @@ export function RecentSalesFeed() {
       }
       query={gql`
         ${BaseTokenFieldsFragment}
-        query getLatestSales($limit: Int!) {
-          events(limit: $limit, order_by: [{level: desc, opid: desc}], where: {token: {metadata_status: {_eq: "processed"}}, implements: {_eq: "SALE"}, fa2_address: {_eq: "${HEN_CONTRACT_FA2}"}}) {
+        query getLatestSales($limit: Int!, $filters: tokens_bool_exp!) {
+          events(limit: $limit, order_by: [{level: desc, opid: desc}], where: {token: {metadata_status: {_eq: "processed"}, _and: [$filters]}, implements: {_eq: "SALE"}, fa2_address: {_eq: "${HEN_CONTRACT_FA2}"}}) {
             type
             timestamp
             token {
