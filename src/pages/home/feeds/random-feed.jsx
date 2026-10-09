@@ -33,8 +33,8 @@ export function RandomFeed({ firstId = 196, lastId = 1_592_463, max = 200 }) {
       pageVariables={randomIds}
       query={gql`
         ${BaseTokenFieldsFragment}
-        query Objkts($tokenIds: [String!] = "", $limit: Int!) {
-          tokens(where: { token_id: { _in: $tokenIds }, editions: { _neq: 0 }, fa2_address: { _eq: "${HEN_CONTRACT_FA2}" } }, limit: $limit) {
+        query Objkts($tokenIds: [String!] = "", $limit: Int!, $filters: tokens_bool_exp!) {
+          tokens(where: { token_id: { _in: $tokenIds }, editions: { _neq: 0 }, fa2_address: { _eq: "${HEN_CONTRACT_FA2}" }, _and: [$filters] }, limit: $limit) {
             ...baseTokenFields
           }
         }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
 import get from 'lodash/get'
@@ -24,6 +24,7 @@ import {
 import { IconCache } from '@utils/with-icon'
 import { shallow } from 'zustand/shallow'
 import { useUserStore } from '@context/userStore'
+import { EMPTY_FILTERS, toBoolExp } from '@pages/artists'
 
 // Starting heights for tiles not yet measured (see useVirtualList).
 const SINGLE_ESTIMATE = 650
@@ -141,6 +142,16 @@ function TokenCollection({
     setShowNsfw,
   }
 
+  // Artist directory filters, applied server-side: feeds_menu queries take a
+  // `$filters: tokens_bool_exp!`. Debounced so typing a tag doesn't refetch per key.
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [boolExp, setBoolExp] = useState({})
+  useEffect(() => {
+    const t = setTimeout(() => setBoolExp(toBoolExp(filters)), 300)
+    return () => clearTimeout(t)
+  }, [filters])
+  const filterProps = { filters, setFilters }
+
   // let inViewMode = searchParams.get('view')
   //   ? searchParams.get('view')
   //   : viewMode
@@ -149,9 +160,13 @@ function TokenCollection({
     ? parseInt(searchParams.get(namespace), 10)
     : itemsPerLoad
 
+  const filterVariables = feeds_menu ? { filters: boolExp } : {}
+  const filterKey = feeds_menu ? [JSON.stringify(boolExp)] : []
+
   const fetchPage = (page) =>
     request(import.meta.env.VITE_TEIA_GRAPHQL_API, query, {
       ...variables,
+      ...filterVariables,
       limit: maxItems,
       ...(pageVariables ? pageVariables(page) : { offset: page * maxItems }),
     })
@@ -161,11 +176,12 @@ function TokenCollection({
     error,
     isLagging,
   } = useSWR(
-    disable ? null : [namespace, ...swrParams],
+    disable ? null : [namespace, ...swrParams, ...filterKey],
     async (ns) => {
       return typeof query === 'string'
         ? request(import.meta.env.VITE_TEIA_GRAPHQL_API, query, {
             ...variables,
+            ...filterVariables,
             ...(pageVariables ? pageVariables(0) : {}),
             ...(maxItems ? { limit: maxItems } : {}),
           })
@@ -190,7 +206,7 @@ function TokenCollection({
       if (!paginate || disable || isLagging || !prev) return null
       if (!pageVariables && get(prev, resultsPath).length < maxItems)
         return null
-      return [namespace, ...swrParams, 'page', index + 1]
+      return [namespace, ...swrParams, ...filterKey, 'page', index + 1]
     },
     (...key) => fetchPage(key[key.length - 1]),
     { initialSize: 0, revalidateFirstPage: false, revalidateOnFocus: false }
@@ -228,7 +244,11 @@ function TokenCollection({
   if (!data) {
     return (
       <div className={styles.feed_container}>
-        <FeedToolbar feeds_menu={feeds_menu} hazards={hazards} />
+        <FeedToolbar
+          feeds_menu={feeds_menu}
+          hazards={hazards}
+          filters={filterProps}
+        />
         <div className={styles.load_container}>
           <Loading message={`Loading ${label || namespace}`} />
         </div>
@@ -284,7 +304,11 @@ function TokenCollection({
   if (!tokens.length) {
     return (
       <div className={styles.feed_container}>
-        <FeedToolbar feeds_menu={feeds_menu} hazards={hazards} />
+        <FeedToolbar
+          feeds_menu={feeds_menu}
+          hazards={hazards}
+          filters={filterProps}
+        />
         <div className={styles.empty_section}>
           <h1>{emptyMessage}</h1>
         </div>
@@ -296,7 +320,11 @@ function TokenCollection({
 
   return (
     <div className={`${styles.feed_container} no-fool`}>
-      <FeedToolbar feeds_menu={feeds_menu} hazards={hazards} />
+      <FeedToolbar
+        feeds_menu={feeds_menu}
+        hazards={hazards}
+        filters={filterProps}
+      />
       <IconCache.Provider value={{}}>
         <InfiniteScroll
           className={`${styles.infinite_scroll} no-fool`}

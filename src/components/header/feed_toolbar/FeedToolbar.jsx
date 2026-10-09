@@ -15,6 +15,9 @@ import { Checkbox, Input } from '@atoms/input'
 import { shallow } from 'zustand/shallow'
 import { useUserStore } from '@context/userStore'
 import { DEFAULT_START_FEED } from '@constants'
+import { Chips, EMPTY_FILTERS, YEARS, toggleIn } from '@pages/artists'
+import { FILETYPES } from '@pages/artists/ArtistCard'
+import artistStyles from '@pages/artists/index.module.scss'
 
 // const MediaFilter = ({ label, tagline }) => {
 //   return (
@@ -43,18 +46,6 @@ const locationMap = new Map([
   ['/feed/pakistan', '🇵🇰 Pakistan'],
   ['/feed/iran', '🇮🇷 Iran'],
   ['/feed/tezospride', '🏳️‍🌈 Tezospride'],
-  // separator
-  ['---mime_feeds', 'By Format'],
-  ['/feed/image', 'Image'],
-  ['/feed/video', 'Video'],
-  ['/feed/audio', 'Audio'],
-  ['/feed/glb', '3D'],
-  ['/feed/html-svg', 'Code Art'],
-  ['/feed/gif', 'GIF'],
-  ['/feed/pdf', 'PDF'],
-  ['/feed/md', 'Markdown'],
-  ['/feed/txt', 'Text'],
-  ['/feed/midi', 'Midi'],
 ])
 
 const locationNeedSync = ['/feed/friends']
@@ -418,12 +409,16 @@ const FriendsIcon = () => (
   </svg>
 )
 
-const FeedSearch = () => {
+const FeedSearch = ({ filters, setFilters }) => {
   const [term, setTerm] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
   const navigate = useNavigate()
   const submit = () => {
     if (term.trim()) navigate(`/search?term=${encodeURIComponent(term.trim())}`)
   }
+  const activeCount = filters.types.length + filters.years.length
+  const toggle = (key, value) =>
+    setFilters((f) => ({ ...f, [key]: toggleIn(f[key], value) }))
 
   return (
     <div className={styles.search_area}>
@@ -437,16 +432,50 @@ const FeedSearch = () => {
         label="Search"
       >
         <div className={styles.search_actions}>
+          {activeCount > 0 && (
+            <button type="button" onClick={() => setFilters(EMPTY_FILTERS)}>
+              Clear
+            </button>
+          )}
+          <button type="button" onClick={() => setShowFilters((v) => !v)}>
+            {showFilters ? '▴' : '▾'} Filters
+            {activeCount ? ` (${activeCount})` : ''}
+          </button>
           <button type="button" onClick={submit}>
             Search
           </button>
         </div>
       </Input>
+      {showFilters && (
+        <div className={styles.filters_area}>
+          {/* Filetype and year only; the artist directory has the full set. */}
+          <div className={artistStyles.filters}>
+            <div className={artistStyles.filter_row}>
+              <span className={artistStyles.filter_label}>Filetype</span>
+              <Chips
+                options={FILETYPES}
+                selected={filters.types}
+                labelOf={(t) => t.label}
+                onToggle={(t) => toggle('types', t)}
+              />
+            </div>
+            <div className={artistStyles.filter_row}>
+              <span className={artistStyles.filter_label}>Year</span>
+              <Chips
+                options={YEARS}
+                selected={filters.years}
+                labelOf={String}
+                onToggle={(y) => toggle('years', y)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-export const FeedToolbar = ({ feeds_menu = false, hazards }) => {
+export const FeedToolbar = ({ feeds_menu = false, hazards, filters }) => {
   // const [price, setPrice] = useState({ from: 0, to: 0 })
 
   const [viewMode, setViewMode, startFeed] = useLocalSettings(
@@ -582,7 +611,7 @@ export const FeedToolbar = ({ feeds_menu = false, hazards }) => {
           icon={<MasonryIcon />}
         />
       </div>
-      {feeds_menu && <FeedSearch />}
+      {feeds_menu && filters && <FeedSearch {...filters} />}
       {feeds_menu && hazards && (
         <div className={styles.toggles_area}>
           <Checkbox
