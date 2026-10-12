@@ -32,8 +32,9 @@ export const useMasonryColumns = () => {
   return colums
 }
 
-export const ResponsiveMasonry = ({ children }) => {
-  const colums = useMasonryColumns()
+export const ResponsiveMasonry = ({ children, columns }) => {
+  const defaultColumns = useMasonryColumns()
+  const colums = columns ?? defaultColumns
 
   return (
     <Masonry

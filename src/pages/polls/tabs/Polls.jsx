@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { POLLS_CONTRACT, QUIPUSWAP_TEIA_URL } from '@constants'
 import { Line } from '@atoms/line'
-import { Select } from '@atoms/select'
 import { useStorage, usePolls } from '@data/swr'
 import LoadingPollsMessage from '../LoadingPollsMessage'
 import Poll from '../Poll'
 import styles from '@style'
 
 const POLL_STATUS_OPTIONS = {
-  active: 'Active polls',
-  finished: 'Finished polls',
+  active: 'Active',
+  finished: 'Past Polls',
 }
 
 export default function Polls() {
@@ -48,6 +47,19 @@ export default function Polls() {
 
   return (
     <section className={styles.section}>
+      <div className={styles.status_tabs}>
+        {Object.entries(POLL_STATUS_OPTIONS).map(([status, label]) => (
+          <button
+            key={status}
+            className={`${styles.status_tab} ${
+              selectedStatus === status ? styles.selected : ''
+            }`}
+            onClick={() => setSelectedStatus(status)}
+          >
+            {label} ({pollIdsByStatus[status].length})
+          </button>
+        ))}
+      </div>
       <h1 className={styles.section_title}>Teia Polls</h1>
       <p>
         TEIA's polling system is a community tool that any TEIA member can use
@@ -78,20 +90,6 @@ export default function Polls() {
         </a>
       </p>
       <Line />
-      <Select
-        alt="poll group selection"
-        value={{
-          value: selectedStatus,
-          label: `${POLL_STATUS_OPTIONS[selectedStatus]} (${pollIdsByStatus[selectedStatus].length})`,
-        }}
-        onChange={(e) => setSelectedStatus(e.value)}
-        options={Object.entries(POLL_STATUS_OPTIONS).map(([status, label]) => ({
-          value: status,
-          label: `${label} (${pollIdsByStatus[status].length})`,
-        }))}
-      >
-        <Line />
-      </Select>
 
       <PollGroup
         status={selectedStatus}
