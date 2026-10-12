@@ -12,9 +12,15 @@
 
 .status_tabs {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 1em;
   margin-bottom: 1.5em;
+
+  // The tour "?" link, not underlined like the section links
+  a {
+    text-decoration: none;
+  }
 }
 
 .status_tab {

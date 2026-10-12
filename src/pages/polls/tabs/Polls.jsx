@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { POLLS_CONTRACT, QUIPUSWAP_TEIA_URL } from '@constants'
 import { Line } from '@atoms/line'
 import { useStorage, usePolls } from '@data/swr'
+import Tour, { TourLink } from '@components/tour'
 import LoadingPollsMessage from '../LoadingPollsMessage'
 import Poll from '../Poll'
 import styles from '@style'
@@ -11,9 +13,29 @@ const POLL_STATUS_OPTIONS = {
   finished: 'Past Polls',
 }
 
+const TOUR = [
+  {
+    target: 'polls-active',
+    text: 'Polls still open for voting. You can change your vote until the poll ends.',
+  },
+  {
+    target: 'polls-finished',
+    text: 'Closed polls and their final results. These can no longer be voted on.',
+  },
+]
+
 export default function Polls() {
   // Set the component state
   const [selectedStatus, setSelectedStatus] = useState('active')
+
+  // Start the tabs tour on every visit; Done or close ends it
+  const [params, setParams] = useSearchParams()
+  useEffect(() => {
+    if (params.get('tour')) return
+    params.set('tour', 'polls')
+    setParams(params, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Get all the required polls information
   const [pollsStorage] = useStorage(POLLS_CONTRACT)
@@ -47,10 +69,12 @@ export default function Polls() {
 
   return (
     <section className={styles.section}>
+      <Tour name="polls" steps={TOUR} />
       <div className={styles.status_tabs}>
         {Object.entries(POLL_STATUS_OPTIONS).map(([status, label]) => (
           <button
             key={status}
+            data-tour={`polls-${status}`}
             className={`${styles.status_tab} ${
               selectedStatus === status ? styles.selected : ''
             }`}
@@ -59,6 +83,7 @@ export default function Polls() {
             {label} ({pollIdsByStatus[status].length})
           </button>
         ))}
+        <TourLink name="polls" title="How poll tabs work" />
       </div>
       <h1 className={styles.section_title}>Teia Polls</h1>
       <p>
