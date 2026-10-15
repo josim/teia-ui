@@ -107,7 +107,7 @@ function layoutBars(events, year, month, startOffset, daysInMonth) {
   }
 
   // Teia events are packed first
-  const isTeia = (sp) => sp.ev.source === 'chain'
+  const isTeia = (sp) => sp.ev.source === 'chain' || !!sp.ev.teia_event
   spans.sort(
     (a, b) =>
       Number(isTeia(b)) - Number(isTeia(a)) ||
@@ -240,7 +240,9 @@ export default function MonthGrid({
 
   // Teia events first
   const selectedEvents = [...((selected && byDay[selected]) || [])].sort(
-    (a, b) => Number(b.source === 'chain') - Number(a.source === 'chain')
+    (a, b) =>
+      Number(b.source === 'chain' || !!b.teia_event) -
+      Number(a.source === 'chain' || !!a.teia_event)
   )
   const selectedLabel = selected
     ? new Date(`${selected}T00:00:00`).toLocaleDateString(undefined, {
@@ -336,6 +338,13 @@ export default function MonthGrid({
                     }}
                   >
                     <span className={styles.bar_title}>
+                      {sp.ev.teia_event && (
+                        <img
+                          src="/teia-frame.svg"
+                          alt=""
+                          className={styles.teia_mark}
+                        />
+                      )}
                       {sp.ev.title}
                       {sp.ev.hidden ? ' · hidden' : ''}
                     </span>
